@@ -457,7 +457,7 @@ func _build_infill_buildings() -> int:
 				var position: Vector2 = sample.position
 				var tangent: Vector2 = sample.tangent
 				var normal: Vector2 = Vector2(-tangent.y, tangent.x) * side
-				var setback := rng.randf_range(1.6, 3.6)
+				var setback := rng.randf_range(1.8, 4.0)
 				var depth := rng.randf_range(7.0, 13.0)
 				var centre: Vector2 = position + normal * (half_width + setback + depth * 0.5)
 				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
@@ -1109,25 +1109,33 @@ static func _cell_key(x: float, y: float) -> int:
 	return int(floor(x / CELL)) * 100000 + int(floor(y / CELL))
 
 
+## Marks exactly the cells the rectangle covers - no extra ring, or plots lose a metre
+## of frontage on every side and the streets end up with gaps.
 func _mark_rect(target: Dictionary, rect: Rect2) -> void:
-	var x := rect.position.x
-	while x <= rect.end.x + CELL:
-		var y := rect.position.y
-		while y <= rect.end.y + CELL:
-			target[_cell_key(x, y)] = true
-			y += CELL
-		x += CELL
+	var cx := floor(rect.position.x / CELL)
+	var cx_end := floor(rect.end.x / CELL)
+	var cy_start := floor(rect.position.y / CELL)
+	var cy_end := floor(rect.end.y / CELL)
+	while cx <= cx_end:
+		var cy := cy_start
+		while cy <= cy_end:
+			target[int(cx) * 100000 + int(cy)] = true
+			cy += 1.0
+		cx += 1.0
 
 
 func _rect_hits(target: Dictionary, rect: Rect2) -> bool:
-	var x := rect.position.x
-	while x <= rect.end.x + CELL:
-		var y := rect.position.y
-		while y <= rect.end.y + CELL:
-			if target.has(_cell_key(x, y)):
+	var cx := floor(rect.position.x / CELL)
+	var cx_end := floor(rect.end.x / CELL)
+	var cy_start := floor(rect.position.y / CELL)
+	var cy_end := floor(rect.end.y / CELL)
+	while cx <= cx_end:
+		var cy := cy_start
+		while cy <= cy_end:
+			if target.has(int(cx) * 100000 + int(cy)):
 				return true
-			y += CELL
-		x += CELL
+			cy += 1.0
+		cx += 1.0
 	return false
 
 
