@@ -46,58 +46,83 @@ def _blur(a: np.ndarray, radius_cells: int, passes: int = 2) -> np.ndarray:
 
 
 class Occupancy:
-    """2 m raster used to keep generated plots out of each other's way."""
+    """2 m raster used to keep generated plots out of each other's way.
+
+    Boxes are rasterised as *rotated* rectangles (the cell centre is
+    transformed into the box's local frame), otherwise diagonal streets would
+    block their own frontage.
+    """
 
     def __init__(self, half: float, cell: float = 2.0):
         self.half = half
         self.cell = cell
         self.n = int(2 * half / cell) + 1
         self.g = np.zeros((self.n, self.n), dtype=np.uint8)
+        ii = np.arange(self.n)
+        self.cx_axis = -half + (ii + 0.5) * cell
+        self.cy_axis = half - (ii + 0.5) * cell
 
-    def _idx(self, x, y):
-        return (int((x + self.half) / self.cell), int((self.half - y) / self.cell))
-
-    def box(self, cx, cy, w, d, ang, pad=0.0):
-        hw, hd = w * 0.5 + pad, d * 0.5 + pad
-        ca, sa = math.cos(ang), math.sin(ang)
-        corners = []
-        for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
-            lx, ly = sx * hw, sy * hd
-            corners.append((cx + lx * ca - ly * sa, cy + lx * sa + ly * ca))
-        return corners
-
-    def _bounds(self, corners):
-        xs = [c[0] for c in corners]
-        ys = [c[1] for c in corners]
-        i0, j1 = self._idx(min(xs), min(ys))
-        i1, j0 = self._idx(max(xs), max(ys))
+    def _window(self, xs, ys):
+        i0 = int(np.floor((min(xs) + self.half) / self.cell))
+        i1 = int(np.ceil((max(xs) + self.half) / self.cell))
+        j0 = int(np.floor((self.half - max(ys)) / self.cell))
+        j1 = int(np.ceil((self.half - min(ys)) / self.cell))
         return max(0, i0), min(self.n - 1, i1), max(0, j0), min(self.n - 1, j1)
 
-    def test_box(self, cx, cy, w, d, ang, pad=0.0) -> bool:
-        c = self.box(cx, cy, w, d, ang, pad)
-        i0, i1, j0, j1 = self._bounds(c)
+    def _box_mask(self, cx, cy, w, d, ang, pad):
+        hw, hd = w * 0.5 + pad, d * 0.5 + pad
+        ca, sa = math.cos(ang), math.sin(ang)
+        rad = math.hypot(hw, hd)
+        i0, i1, j0, j1 = self._window((cx - rad, cx + rad), (cy - rad, cy + rad))
         if i1 < i0 or j1 < j0:
+            return None
+        px = self.cx_axis[i0 : i1 + 1][None, :]
+        py = self.cy_axis[j0 : j1 + 1][:, None]
+        dx = px - cx
+        dy = py - cy
+        lx = dx * ca + dy * sa
+        ly = -dx * sa + dy * ca
+        mask = (np.abs(lx) <= hw) & (np.abs(ly) <= hd)
+        return i0, i1, j0, j1, mask
+
+    def test_box(self, cx, cy, w, d, ang, pad=0.0) -> bool:
+        r = self._box_mask(cx, cy, w, d, ang, pad)
+        if r is None:
             return False
-        return not self.g[j0 : j1 + 1, i0 : i1 + 1].any()
+        i0, i1, j0, j1, mask = r
+        return not bool(np.any(self.g[j0 : j1 + 1, i0 : i1 + 1][mask]))
 
     def mark_box(self, cx, cy, w, d, ang, pad=0.0, value=1):
-        c = self.box(cx, cy, w, d, ang, pad)
-        i0, i1, j0, j1 = self._bounds(c)
-        if i1 < i0 or j1 < j0:
+        r = self._box_mask(cx, cy, w, d, ang, pad)
+        if r is None:
             return
-        self.g[j0 : j1 + 1, i0 : i1 + 1] = value
+        i0, i1, j0, j1, mask = r
+        sub = self.g[j0 : j1 + 1, i0 : i1 + 1]
+        sub[mask] = value
+        self.g[j0 : j1 + 1, i0 : i1 + 1] = sub
 
     def mark_poly(self, poly, pad=0.0, value=1):
+        from .terrain import _points_in_poly
+
         xs = [p[0] for p in poly]
         ys = [p[1] for p in poly]
-        cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
-        # Conservative: mark the polygon's axis-aligned bounds grown by pad.
-        i0, j1 = self._idx(min(xs) - pad, min(ys) - pad)
-        i1, j0 = self._idx(max(xs) + pad, max(ys) + pad)
-        i0, i1 = max(0, i0), min(self.n - 1, i1)
-        j0, j1 = max(0, j0), min(self.n - 1, j1)
-        if i1 >= i0 and j1 >= j0:
-            self.g[j0 : j1 + 1, i0 : i1 + 1] = value
+        i0, i1, j0, j1 = self._window((min(xs) - pad, max(xs) + pad), (min(ys) - pad, max(ys) + pad))
+        if i1 < i0 or j1 < j0:
+            return
+        px = np.broadcast_to(self.cx_axis[i0 : i1 + 1][None, :], (j1 - j0 + 1, i1 - i0 + 1))
+        py = np.broadcast_to(self.cy_axis[j0 : j1 + 1][:, None], (j1 - j0 + 1, i1 - i0 + 1))
+        if pad > 0.0:
+            cx0, cy0 = sum(xs) / len(xs), sum(ys) / len(ys)
+            grown = []
+            for x, y in poly:
+                vx, vy = x - cx0, y - cy0
+                L = math.hypot(vx, vy) or 1.0
+                grown.append((x + vx / L * pad, y + vy / L * pad))
+            poly = grown
+        inside = _points_in_poly(px, py, poly)
+        sub = self.g[j0 : j1 + 1, i0 : i1 + 1]
+        sub[inside] = value
+        self.g[j0 : j1 + 1, i0 : i1 + 1] = sub
 
     def mark_corridor(self, pts, half_w, value=1):
         for i in range(len(pts) - 1):
@@ -107,7 +132,7 @@ class Occupancy:
             if L < 1e-6:
                 continue
             ang = math.atan2(by - ay, bx - ax)
-            self.mark_box((ax + bx) / 2, (ay + by) / 2, L + half_w, half_w * 2, ang, 0.0, value)
+            self.mark_box((ax + bx) / 2, (ay + by) / 2, L + half_w * 0.5, half_w * 2, ang, 0.0, value)
 
 
 class UrbanField:

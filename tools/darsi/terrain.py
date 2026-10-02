@@ -184,18 +184,27 @@ class TerrainBuilder:
         return [self.sample(p[0], p[1]) for p in pts]
 
     # -- road carving ----------------------------------------------------------
-    def carve_roads(self, roads):
-        """Pull terrain towards a longitudinally smoothed road profile."""
+    def carve_roads(self, roads, profiles=None):
+        """Pull terrain towards a longitudinally smoothed road profile.
+
+        `profiles` optionally supplies an exact elevation profile per road, in
+        which case no smoothing or gradient limiting is applied -- used for the
+        final locking pass so the stored road elevations and the terrain raster
+        agree to the centimetre.
+        """
         target = np.array(self.h, dtype=np.float32)
         weight = np.zeros_like(target)
-        for r in roads:
+        for ri, r in enumerate(roads):
             pts = r["pts"]
             if len(pts) < 2:
                 continue
-            prof = np.array([self.sample(p[0], p[1]) for p in pts], dtype=np.float64)
-            prof = _smooth_profile(prof, r["smooth_passes"])
-            # Limit longitudinal gradient so roads stay rideable.
-            prof = _limit_gradient(pts, prof, r["max_grade"])
+            if profiles is not None:
+                prof = np.asarray(profiles[ri], dtype=np.float64)
+            else:
+                prof = np.array([self.sample(p[0], p[1]) for p in pts], dtype=np.float64)
+                prof = _smooth_profile(prof, r["smooth_passes"])
+                # Limit longitudinal gradient so roads stay rideable.
+                prof = _limit_gradient(pts, prof, r["max_grade"])
             half_w = r["width"] * 0.5 + r["shoulder"]
             blend = half_w + r["blend"]
             for i in range(len(pts) - 1):
@@ -300,7 +309,8 @@ def _limit_gradient(pts, prof: np.ndarray, max_grade: float) -> np.ndarray:
     """Clamp |dh/ds| so no road section exceeds a plausible gradient."""
     p = prof.copy()
     n = len(p)
-    for _ in range(3):
+    # Relaxation: forward + backward sweeps, iterated until it converges.
+    for _ in range(24):
         for i in range(n - 1):
             ds = math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
             if ds < 1e-6:
@@ -325,4 +335,21 @@ def _limit_gradient(pts, prof: np.ndarray, max_grade: float) -> np.ndarray:
             elif d < -lim:
                 p[i + 1] += (-d - lim) * 0.5
                 p[i] -= (-d - lim) * 0.5
+        if _max_grade(pts, p) <= max_grade * 1.001:
+            break
     return p
+
+
+def _max_grade(pts, prof) -> float:
+    g = 0.0
+    for i in range(len(prof) - 1):
+        ds = math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
+        if ds < 1e-6:
+            continue
+        g = max(g, abs(prof[i + 1] - prof[i]) / ds)
+    return g
+
+
+def limit_gradient(pts, prof, max_grade: float):
+    """Public wrapper used by the build pipeline's final locking pass."""
+    return _limit_gradient(pts, np.asarray(prof, dtype=np.float64), max_grade)

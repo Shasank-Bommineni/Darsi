@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/headless.mjs && node tests/boot.mjs",
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test:world": "node tests/headless.mjs",
+    "test:boot": "node tests/boot.mjs"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +20,7 @@
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "jsdom": "^30.1.1",
     "vite": "^7.3.6"
   }
 }

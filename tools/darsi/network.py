@@ -178,22 +178,68 @@ class RoadNetwork:
             e["pts"] = pts
             e["length"] = polyline_length(pts)
 
-    def drop_outside(self, half: float):
-        keep = []
+    def clip(self, half: float):
+        """Clip every centreline to the world square, splitting ways that leave
+        and re-enter.  OSM `out geom` returns whole ways, so without this a
+        state highway would run for 30 km outside the playable area."""
+        out = []
         for e in self.edges:
-            inside = [p for p in e["pts"] if abs(p[0]) <= half and abs(p[1]) <= half]
-            if len(inside) < 2:
-                continue
-            keep.append(e)
-        self.edges = keep
-        # Re-index
+            for piece in _clip_polyline(e["pts"], half):
+                if len(piece) < 2 or polyline_length(piece) < 3.0:
+                    continue
+                ne = dict(e)
+                ne["pts"] = piece
+                ne["length"] = polyline_length(piece)
+                out.append(ne)
+        self.edges = out
+        self._reindex()
+
+    def _reindex(self):
+        # endpoints may have moved to the clip boundary; rebuild node table
+        self.nodes = []
+        lookup: dict[tuple[int, int], int] = {}
+
+        def node_for(x, y):
+            key = (int(round(x / 2.5)), int(round(y / 2.5)))
+            if key in lookup:
+                return lookup[key]
+            idx = len(self.nodes)
+            self.nodes.append({"x": x, "y": y, "edges": []})
+            lookup[key] = idx
+            return idx
+
         for i, e in enumerate(self.edges):
             e["id"] = i
-        for n in self.nodes:
-            n["edges"] = []
+            e["a"] = node_for(e["pts"][0][0], e["pts"][0][1])
+            e["b"] = node_for(e["pts"][-1][0], e["pts"][-1][1])
+            self.nodes[e["a"]]["edges"].append(i)
+            self.nodes[e["b"]]["edges"].append(i)
         for e in self.edges:
-            self.nodes[e["a"]]["edges"].append(e["id"])
-            self.nodes[e["b"]]["edges"].append(e["id"])
+            e["pts"][0] = (self.nodes[e["a"]]["x"], self.nodes[e["a"]]["y"])
+            e["pts"][-1] = (self.nodes[e["b"]]["x"], self.nodes[e["b"]]["y"])
+
+    def split_long(self, max_len: float = 220.0):
+        """Keep edges short enough for per-chunk streaming and traffic routing."""
+        out = []
+        for e in self.edges:
+            pts = e["pts"]
+            L = polyline_length(pts)
+            if L <= max_len:
+                out.append(e)
+                continue
+            parts = max(2, int(math.ceil(L / max_len)))
+            per = max(2, len(pts) // parts)
+            i = 0
+            while i < len(pts) - 1:
+                j = min(len(pts) - 1, i + per)
+                if len(pts) - 1 - j < 2:
+                    j = len(pts) - 1
+                ne = dict(e)
+                ne["pts"] = pts[i : j + 1]
+                out.append(ne)
+                i = j
+        self.edges = out
+        self._reindex()
 
     def largest_component(self):
         """Return the set of edge ids in the biggest connected component."""
@@ -221,3 +267,46 @@ class RoadNetwork:
             if len(comp_edges) > len(best):
                 best = comp_edges
         return best
+
+
+def _clip_polyline(pts, half: float):
+    """Split a polyline into the pieces that lie inside [-half, half]^2."""
+    def inside(p):
+        return abs(p[0]) <= half and abs(p[1]) <= half
+
+    def cross(a, b):
+        """Parameter where segment a->b crosses the square boundary (a inside)."""
+        t_best = 1.0
+        for axis in (0, 1):
+            for lim in (-half, half):
+                da = a[axis] - lim
+                db = b[axis] - lim
+                if (da > 0) != (db > 0) and abs(db - da) > 1e-12:
+                    t = da / (da - db)
+                    if 0.0 <= t <= t_best:
+                        cand = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+                        if abs(cand[0]) <= half + 1e-6 and abs(cand[1]) <= half + 1e-6:
+                            t_best = t
+        return t_best
+
+    pieces = []
+    cur = []
+    for i in range(len(pts)):
+        p = pts[i]
+        if inside(p):
+            if not cur and i > 0:
+                q = pts[i - 1]
+                t = cross(p, q)
+                cur.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+                cur.reverse()
+            cur.append(p)
+        else:
+            if cur:
+                q = cur[-1]
+                t = cross(q, p)
+                cur.append((q[0] + (p[0] - q[0]) * t, q[1] + (p[1] - q[1]) * t))
+                pieces.append(cur)
+                cur = []
+    if cur:
+        pieces.append(cur)
+    return pieces

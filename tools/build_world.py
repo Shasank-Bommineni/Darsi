@@ -63,7 +63,7 @@ from darsi.geo import (  # noqa: E402
 from darsi.network import RoadNetwork  # noqa: E402
 from darsi.osmread import read as read_osm  # noqa: E402
 from darsi.rng import Rng, hash_f, hash_u32  # noqa: E402
-from darsi.terrain import Dem, TerrainBuilder  # noqa: E402
+from darsi.terrain import Dem, TerrainBuilder, limit_gradient  # noqa: E402
 from darsi.urban import (  # noqa: E402
     COMMERCIAL_MIX,
     RESIDENTIAL_MIX,
@@ -148,8 +148,9 @@ def main() -> int:
     net = RoadNetwork()
     net.build(road_feats, half)
     net.weld(4.0)
+    net.clip(half)
     net.refine(7.0)
-    net.drop_outside(half + 300)
+    net.split_long(240.0)
     print(f"[2/9] roads: {len(net.edges)} edges, {len(net.nodes)} nodes, "
           f"{sum(polyline_length(e['pts']) for e in net.edges)/1000:.1f} km")
 
@@ -268,9 +269,29 @@ def main() -> int:
         rec["water_level"] = r2(min(hs) - 0.35)
     terrain.smooth(1)
 
-    # final road elevations sampled from the carved surface
+    # Second carve pass: smoothing and the water dishing partly undo the first
+    # one, so re-impose the gradient-limited profiles on the settled surface.
+    terrain.carve_roads(carve)
+
+    # Final locking pass: sample what the surface actually is, limit the
+    # gradient one last time, then carve to exactly that profile so the stored
+    # road elevations and the terrain raster agree.
+    final_profiles = []
+    for e, r in zip(net.edges, carve):
+        z = [terrain.sample(p[0], p[1]) for p in e["pts"]]
+        final_profiles.append(limit_gradient(e["pts"], z, r["max_grade"]))
+    terrain.carve_roads(carve, profiles=final_profiles)
+    for e, z in zip(net.edges, final_profiles):
+        e["z"] = [float(v) for v in z]
+
+    worst = 0.0
     for e in net.edges:
-        e["z"] = [terrain.sample(p[0], p[1]) for p in e["pts"]]
+        for i in range(len(e["pts"]) - 1):
+            ds = math.hypot(e["pts"][i + 1][0] - e["pts"][i][0], e["pts"][i + 1][1] - e["pts"][i][1])
+            if ds < 1.0:
+                continue
+            worst = max(worst, abs(e["z"][i + 1] - e["z"][i]) / ds)
+    print(f"      steepest road gradient {worst * 100:.1f}%")
     print(f"[5/9] terrain carved; relief {float(terrain.h.min()):.1f}..{float(terrain.h.max()):.1f} m")
 
     # ---------------------------------------------------------------- urbanity
@@ -393,6 +414,21 @@ def main() -> int:
         rng = Rng(hash_u32(f.osm_id, 0x51A3))
         if cat is None:
             cat = _infer_category(a, u, w, d, rng)
+
+        # A footprint this large is a *site*, not a single structure -- OSM
+        # mappers routinely trace a whole campus as one `building` way. Drawing
+        # it as one extruded box would put a 190 m shed in the middle of town.
+        # Render it as a walled compound with real blocks inside instead.
+        if a > 2200 and min(w, d) > 18:
+            site, inner = _compound_site(bid, f, (cx, cy, w, d, ang), a, u, cat, terrain, rng)
+            buildings.append(site)
+            bid += 1
+            for b in inner:
+                b["id"] = bid
+                bid += 1
+                buildings.append(b)
+            occ.mark_poly([(p[0], p[1]) for p in f.pts], pad=1.0)
+            continue
         name = f.tags.get("name", "")
         levels = None
         try:
@@ -420,13 +456,27 @@ def main() -> int:
 
     n_osm = len(buildings)
 
+    # ---- places of worship ---------------------------------------------------
+    # Mapped ones keep their surveyed position and name (REAL DATA).  Darsi's
+    # OSM coverage only has a single worship node, so a small number of
+    # neighbourhood temples are also generated -- deliberately unnamed, and
+    # recorded as PROCEDURAL in docs/world-accuracy.md.  We never invent a name
+    # for a real landmark.
+    worship = _place_worship(net, urban, occ, terrain, water_polys, half, poi_index, centres)
+    n_worship_real = sum(1 for w in worship if w["src"] == "osm")
+    for g in worship:
+        g["id"] = bid
+        bid += 1
+        buildings.append(g)
+
     # ---- generated plots along real streets ---------------------------------
     gen = _generate_plots(net, urban, occ, terrain, water_polys, half)
     for g in gen:
         g["id"] = bid
         bid += 1
         buildings.append(g)
-    print(f"[8/9] buildings: {n_osm} from OSM + {len(gen)} generated = {len(buildings)}")
+    print(f"[8/9] buildings: {n_osm} from OSM + {len(worship)} worship "
+          f"({n_worship_real} surveyed) + {len(gen)} generated = {len(buildings)}")
 
     # ---------------------------------------------------------------- props
     walls = []
@@ -641,6 +691,222 @@ def _building_record(bid, src, ref, cat, name, poly, rect, gy, levels, body, par
 # ----------------------------------------------------------------------------
 
 
+SITE_INNER_CATEGORY = {
+    "school": "school",
+    "hospital": "hospital",
+    "government": "government",
+    "civic": "civic",
+    "warehouse": "warehouse",
+    "industrial": "warehouse",
+    "unfinished": "unfinished",
+    "commercial": "commercial",
+}
+
+
+def _compound_site(bid, f, rect, area, u, cat, terrain, rng):
+    """Turn an oversized OSM footprint into a walled site with real blocks."""
+    cx, cy, w, d, ang = rect
+    poly = [(p[0], p[1]) for p in f.pts]
+    gy = min(terrain.sample(p[0], p[1]) for p in poly)
+    name = f.tags.get("name", "")
+
+    site = {
+        "id": bid,
+        "src": "osm",
+        "ref": f.ref,
+        "cat": "compound",
+        "x": r1(cx),
+        "y": r1(cy),
+        "w": r2(w),
+        "d": r2(d),
+        "a": round(ang, 4),
+        "g": r2(gy),
+        "lv": 0,
+        "h": 2.3,
+        "pp": 0.0,
+        "u": round(u, 3),
+        "sd": hash_u32(f.osm_id, 0x2C0D) % 65536,
+    }
+    if name:
+        site["n"] = name
+    if len(poly) <= 48:
+        site["poly"] = [[r1(p[0]), r1(p[1])] for p in poly]
+
+    inner_cat = SITE_INNER_CATEGORY.get(cat, "commercial")
+    # a handful of blocks laid out along the long axis, inside the boundary
+    n = max(2, min(6, int(round(area / 1400.0))))
+    ca, sa = math.cos(ang), math.sin(ang)
+    long_w = max(w, d)
+    short_d = min(w, d)
+    along = ca, sa
+    across = -sa, ca
+    if d > w:
+        along, across = across, (-across[0], -across[1])
+        long_w, short_d = max(w, d), min(w, d)
+
+    out = []
+    usable = long_w - 18.0
+    if usable <= 10:
+        return site, out
+    for i in range(n):
+        t = (i + 0.5) / n
+        off = (t - 0.5) * usable
+        lateral = rng.range(-0.18, 0.18) * short_d
+        bx = cx + along[0] * off + across[0] * lateral
+        by = cy + along[1] * off + across[1] * lateral
+        bw = min(usable / n * rng.range(0.55, 0.8), 26.0)
+        bd = min(short_d * rng.range(0.3, 0.5), 22.0)
+        if bw < 5 or bd < 5:
+            continue
+        levels = storeys_for(inner_cat, u, rng, bw * bd)
+        body, parapet = building_height(inner_cat, levels, rng)
+        byy = min(
+            terrain.sample(bx + ox, by + oy)
+            for ox, oy in ((-bw * 0.45, 0), (bw * 0.45, 0), (0, -bd * 0.45), (0, bd * 0.45), (0, 0))
+        )
+        rec = _building_record(
+            0, "gen", "", inner_cat, "", [], (bx, by, bw, bd, ang), byy, levels, body, parapet, u, rng
+        )
+        rec["sd"] = hash_u32(f.osm_id, i, 0x11AB) % 65536
+        rec["site"] = f.ref
+        out.append(rec)
+    return site, out
+
+
+def _nearest_edge(net, x, y, max_dist=140.0):
+    """Closest point on the surveyed network: (edge, px, py, tangent, dist)."""
+    best = None
+    for e in net.edges:
+        pts = e["pts"]
+        for i in range(len(pts) - 1):
+            ax, ay = pts[i]
+            bx, by = pts[i + 1]
+            dx, dy = bx - ax, by - ay
+            L2 = dx * dx + dy * dy
+            if L2 < 1e-9:
+                continue
+            t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / L2))
+            cx, cy = ax + t * dx, ay + t * dy
+            d = math.hypot(x - cx, y - cy)
+            if d > max_dist:
+                continue
+            if best is None or d < best[4]:
+                L = math.sqrt(L2)
+                best = (e, cx, cy, (dx / L, dy / L), d)
+    return best
+
+
+def _worship_record(bid, src, ref, cat, name, rect, terrain, u, rng, tags=None):
+    cx, cy, w, d, ang = rect
+    gy = min(
+        terrain.sample(cx + ox, cy + oy)
+        for ox, oy in ((-w * 0.45, 0), (w * 0.45, 0), (0, -d * 0.45), (0, d * 0.45), (0, 0))
+    )
+    levels = 1
+    body, parapet = building_height(cat, levels, rng)
+    rec = _building_record(bid, src, ref, cat, name, [], rect, gy, levels, body, parapet, u, rng, tags)
+    return rec
+
+
+def _place_worship(net, urban, occ, terrain, water_polys, half, poi_index, centres):
+    """Temples, mosques and churches as real 3D structures.
+
+    1. Every mapped place of worship becomes a building at its surveyed
+       position, oriented to the street it stands on, keeping its OSM name.
+    2. A modest number of unnamed neighbourhood temples are generated near the
+       settlement centres, because a mandal headquarters without a single
+       visible temple would be a worse lie than an honestly-labelled generated
+       one.  These carry no name and are documented as PROCEDURAL.
+    """
+    out = []
+
+    def place(x, y, cat, name, src, ref, size_scale, seed):
+        rng = Rng(seed)
+        near = _nearest_edge(net, x, y, 160.0)
+        if near is None:
+            return False
+        e, px, py, (tx, ty), dist = near
+        ang = math.atan2(ty, tx)
+        half_road = e["width"] * 0.5 + e["shoulder"]
+        # which side of the road is the site on?
+        nx, ny = -ty, tx
+        side = 1.0 if ((x - px) * nx + (y - py) * ny) >= 0 else -1.0
+        nx, ny = nx * side, ny * side
+        if side < 0:
+            ang += math.pi
+
+        base_w = rng.range(9.0, 14.0) * size_scale
+        base_d = rng.range(11.0, 17.0) * size_scale
+        for attempt in range(7):
+            w = base_w * (1.0 - attempt * 0.08)
+            d = base_d * (1.0 - attempt * 0.08)
+            if w < 5.0 or d < 5.5:
+                return False
+            setback = rng.range(2.5, 7.0) + attempt * 1.5
+            cx = px + nx * (half_road + setback + d * 0.5)
+            cy = py + ny * (half_road + setback + d * 0.5)
+            if abs(cx) > half - 30 or abs(cy) > half - 30:
+                return False
+            if any(point_in_poly(cx, cy, wp) for wp in water_polys):
+                return False
+            if not occ.test_box(cx, cy, w + 4.0, d + 4.0, ang, pad=0.8):
+                continue
+            hs = [
+                terrain.sample(cx + dx, cy + dy)
+                for dx, dy in ((-w * 0.45, 0), (w * 0.45, 0), (0, -d * 0.45), (0, d * 0.45), (0, 0))
+            ]
+            if max(hs) - min(hs) > 3.0:
+                continue
+            occ.mark_box(cx, cy, w + 4.0, d + 4.0, ang, pad=0.5)
+            u = urban.at(cx, cy)
+            rec = _worship_record(0, src, ref, cat, name, (cx, cy, w, d, ang), terrain, u, Rng(seed ^ 0x9E37))
+            rec["sd"] = seed % 65536
+            rec["pl"] = [r2(w + 4.0), r2(d + 4.0), r2(setback), r2(half_road)]
+            rec["wl"] = 1
+            rec["fx"] = r1(px)
+            rec["fy"] = r1(py)
+            rec["rd"] = e["id"]
+            out.append(rec)
+            return True
+        return False
+
+    # ---- 1. surveyed places of worship --------------------------------------
+    for x, y, cat, name in poi_index:
+        if cat != "amenity:place_of_worship":
+            continue
+        kind = "temple"
+        place(x, y, kind, name, "osm", "", 1.25, hash_u32(int(x * 10), int(y * 10), 0x7071))
+
+    # ---- 2. neighbourhood temples -------------------------------------------
+    # One per settlement centre plus a few more in the denser streets, capped
+    # so the town never looks like a temple theme park.
+    target = 0
+    for cx, cy, radius, strength in centres:
+        target += 1 if strength < 0.7 else 3
+    target = min(target, 26)
+
+    placed = 0
+    ranked = sorted(centres, key=lambda c: -c[3])
+    for ci, (ccx, ccy, radius, strength) in enumerate(ranked):
+        want = 3 if strength >= 0.7 else 1
+        got = 0
+        for attempt in range(220):
+            if got >= want or placed >= target:
+                break
+            r = Rng(hash_u32(ci, attempt, 0x7E3D))
+            ang = r.f() * math.tau
+            dist = radius * 0.12 * math.sqrt(r.f()) * 2.4
+            x = ccx + math.cos(ang) * dist
+            y = ccy + math.sin(ang) * dist
+            if urban.at(x, y) < 0.28:
+                continue
+            if place(x, y, "temple", "", "gen", "", 0.78 + 0.3 * strength,
+                     hash_u32(ci, attempt, 0x3311)):
+                got += 1
+                placed += 1
+    return out
+
+
 def _generate_plots(net, urban, occ, terrain, water_polys, half):
     """Lay deterministic street-facing plots along the surveyed road network.
 
@@ -697,7 +963,13 @@ def _generate_plots(net, urban, occ, terrain, water_polys, half):
                 if abs(cx) > half - 20 or abs(cy) > half - 20:
                     s += frontage
                     continue
+                # The renderer treats local +Z as the street-facing side, and
+                # local +Z maps to the road only for side = +1 -- so plots on
+                # the other side of the street must be turned around or every
+                # shopfront on that side would face its own back yard.
                 ang = math.atan2(ty, tx)
+                if side == -1:
+                    ang += math.pi
 
                 if any(point_in_poly(cx, cy, wp) for wp in water_polys):
                     s += frontage

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1b1a17" />
+    <title>Darsi — Prakasam District</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🛵</text></svg>" />
+    <style>
+      :root {
+        --ink: #f3ece0;
+        --dust: #c8b89a;
+        --accent: #e2b33c;
+      }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      html, body {
+        margin: 0; padding: 0; height: 100%; overflow: hidden;
+        background: #0d0c0a; color: var(--ink);
+        font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+        overscroll-behavior: none; touch-action: none;
+      }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; width: 100%; height: 100%; }
+
+      /* ---------------- boot ---------------- */
+      #boot {
+        position: fixed; inset: 0; z-index: 90;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 18px; text-align: center; padding: 24px;
+        background:
+          radial-gradient(120% 80% at 50% 10%, #3a2f20 0%, #191611 55%, #0d0c0a 100%);
+      }
+      #boot h1 {
+        margin: 0; font-size: clamp(34px, 8vw, 72px); letter-spacing: .22em;
+        font-weight: 800; color: var(--accent); text-shadow: 0 2px 30px #000a;
+      }
+      #boot .te { font-size: clamp(20px, 5vw, 36px); color: #e7dcc5; letter-spacing: .05em; margin-top: -8px; }
+      #boot .sub { color: var(--dust); font-size: clamp(12px, 3vw, 15px); letter-spacing: .18em; text-transform: uppercase; }
+      #bar { width: min(420px, 78vw); height: 5px; background: #ffffff18; border-radius: 4px; overflow: hidden; }
+      #bar > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #e2b33c, #f0d78a); transition: width .25s ease; }
+      #bootmsg { color: #9c8f78; font-size: 12px; min-height: 16px; letter-spacing: .06em; }
+      #startbtn {
+        margin-top: 6px; padding: 14px 34px; font-size: 17px; font-weight: 700; letter-spacing: .12em;
+        color: #20190c; background: linear-gradient(180deg, #f0d78a, #d8a62c); border: 0; border-radius: 999px;
+        cursor: pointer; box-shadow: 0 8px 28px #0008; display: none;
+      }
+      #startbtn:active { transform: translateY(1px); }
+      #boot .legal { position: absolute; bottom: 14px; font-size: 10.5px; color: #6d6353; max-width: 640px; line-height: 1.5; }
+      #boot .legal a { color: #8d8370; }
+      .err { color: #ff9b86 !important; white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 11px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="boot">
+      <h1>DARSI</h1>
+      <div class="te">దర్శి</div>
+      <div class="sub">Prakasam District · Andhra Pradesh · 523247</div>
+      <div id="bar"><i></i></div>
+      <div id="bootmsg">starting…</div>
+      <button id="startbtn">RIDE</button>
+      <div class="legal">
+        Road network, building footprints, water bodies and place names derived from
+        <b>OpenStreetMap</b> (© OpenStreetMap contributors, ODbL). Elevation from NASA SRTM via AWS Terrain Tiles.
+        All 3D geometry, textures and audio are generated procedurally by this project.
+        See <code>docs/data-sources.md</code> and <code>docs/world-accuracy.md</code>.
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
