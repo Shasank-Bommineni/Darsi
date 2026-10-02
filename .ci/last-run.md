@@ -1,7 +1,7 @@
 # Last CI run
 
-commit: 76c2e7ee536bf62540eb79649aef57d7b5adfd28
-parse: success  tests: failure  smoke: success  export: success
+commit: 0719f45e60cfb15e2324b1322cd0b01e55296df1
+parse: success  tests: success  smoke: success  export: success
 
 ```
 === Darsi world manifest validation ===
@@ -89,7 +89,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 610 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+  built in 594 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
   PASS  plots filled along the real streets (509)
   PASS  drivable road graph built (194 segments)
@@ -113,29 +113,24 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   under the bike: /root/@Node3D@2/Ground at (-5.480063, 0, 13.78306) (normal (0, 1, 0))
   PASS  the bike rests on its suspension (y = 0.53)
   PASS  the bike stays upright at rest
-  speed after 6 s of throttle: 16 km/h, travelled 13.1 m
-  FAIL  the engine actually accelerates the bike (16 km/h)
-  PASS  top speed is plausible for a 150cc commuter (16 km/h)
-  FAIL  the gearbox shifted up (gear 1)
-  FAIL  the odometer recorded the ride (13.1 m)
-  FAIL  the bike moved across the world
+  speed after 6 s of throttle: 52 km/h, travelled 56.1 m
+  PASS  the engine actually accelerates the bike (52 km/h)
+  PASS  top speed is plausible for a 150cc commuter (52 km/h)
+  PASS  the gearbox shifted up (gear 3)
+  PASS  the odometer recorded the ride (56.1 m)
+  PASS  the bike moved across the world
   PASS  the bike is still upright under power
   PASS  fuel is being consumed (8.99 l)
-  heading changed by 13.8 deg, peak lean -23.6 deg
-  FAIL  steering changes the heading (13.8 deg)
-  PASS  the bike leans into the corner (-23.6 deg)
+  heading changed by 28.0 deg, peak lean -52.6 deg
+  PASS  steering changes the heading (28.0 deg)
+  PASS  the bike leans into the corner (-52.6 deg)
   PASS  the bike did not fall over while cornering
   braking: 0.0 -> 0.0 m/s
   PASS  the brakes stop the bike
   PASS  ride modes cycle
   PASS  refuelling fills the tank
 
-=== 52 checks, 5 failures ===
-  FAILED: the engine actually accelerates the bike (16 km/h)
-  FAILED: the gearbox shifted up (gear 1)
-  FAILED: the odometer recorded the ride (13.1 m)
-  FAILED: the bike moved across the world
-  FAILED: steering changes the heading (13.8 deg)
+=== 52 checks, 0 failures ===
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
@@ -172,8 +167,8 @@ savepack: begin: Packing steps: 102
 	savepack: step 93: Storing File: res://project.binary
 savepack: end
 total 64844
-drwxr-xr-x 2 runner runner     4096 Oct  2 16:56 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 16:56 ..
--rw-rw-rw- 1 runner runner   314208 Oct  2 16:56 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 16:56 darsi.x86_64
+drwxr-xr-x 2 runner runner     4096 Oct  2 16:59 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 16:59 ..
+-rw-rw-rw- 1 runner runner   314176 Oct  2 16:59 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 16:59 darsi.x86_64
 ```
