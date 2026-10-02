@@ -1,44 +1,88 @@
-# Darsi geographic data pipeline
+# Map pipeline
 
-The scene builder does not consume satellite imagery. It consumes a small JSON manifest with WGS84 points, then projects those points to metres around Darsi's anchor. This keeps road positions, distances, and streaming-sector boundaries inspectable and regenerable.
+How the real geography of Darsi gets from OpenStreetMap into the game, and exactly which
+parts of the world are real and which are generated.
 
-## Recommended source and license
+## 1. Extract — `tools/fetch_darsi_osm.py`
 
-Use a reviewed extract from [OpenStreetMap](https://www.openstreetmap.org/) for roads, public POIs, water, landuse, and building footprints. OSM data is available under the Open Data Commons Open Database License (ODbL); preserve attribution and follow share-alike obligations when distributing a derived database. Do not import Google tiles, screenshots, proprietary POI exports, or copyrighted vehicle/building meshes.
+Issues a single Overpass QL query for a 4.4 km × 4.4 km window centred on the town node at
+**15.7667 N, 79.6833 E** and writes the verbatim answer to `data/osm/darsi_raw.json`.
 
-A small `.osm` file can be downloaded through an approved OSM export or Geofabrik/BBBike workflow. Keep the source extract outside the game repository if it is large. Only the reviewed, transformed manifest belongs in `data/`.
+```
+[out:json][timeout:600];
+(
+  way["highway"](bbox);  way["building"](bbox);  way["waterway"](bbox);
+  way["natural"](bbox);  way["landuse"](bbox);   way["leisure"](bbox);
+  way["amenity"](bbox);  way["man_made"](bbox);  way["barrier"](bbox);
+  way["railway"](bbox);  node["place"](bbox);    node["amenity"](bbox);
+  node["shop"](bbox);    node["tourism"](bbox);  node["historic"](bbox);
+  ... relations for building/natural/landuse/waterway ...
+);
+out tags geom;
+```
 
-## Reproducible flow
+The script tries five public Overpass endpoints in turn with back-off, because the main
+instance is frequently busy. It runs from `.github/workflows/fetch-osm.yml`, which commits
+the result back to the branch.
 
-1. Choose a bounding box that covers Darsi town and its intended playable roads. Record the date and source URL.
-2. Review the extract in an OSM editor or GIS tool. Remove geometry that is outside the agreed play area and check that the road classes are sensible for a motorcycle game.
-3. Run:
+## 2. Convert — `tools/build_world.py`
 
-   ```bash
-   python3 tools/import_osm.py \
-     --input /path/to/darsi.osm \
-     --base data/darsi_map.json \
-     --output data/darsi_map.reviewed.json \
-     --center 15.7667 79.6833
-   ```
+Produces `data/darsi_world.json` (schema `darsi-world-1.0`). What it does:
 
-4. Inspect the generated roads and POIs in the Godot map screen. Replace the starter file only after a human review of the road graph and landmark positions.
-5. Open the project in Godot and run the prototype. The world is regenerated at startup; there is no baked proprietary map texture.
-6. Record `source_url`, `retrieved_at`, OSM changeset/extract date, attribution, and the reviewer in the manifest before release.
+* **Projection.** Equirectangular metres about the anchor: `east = (lon − lon0)·111320·cos(lat0)`,
+  `north = (lat − lat0)·110574`. At this latitude and over 4 km the error is well under a metre.
+* **Clipping.** Polylines are clipped to the playable rectangle, with the crossing point
+  found by bisection so roads stop exactly on the border instead of jumping to a vertex
+  tens of kilometres away (SH51 continues for 30 km past the window).
+* **Simplification.** Ramer–Douglas–Peucker at 0.75 m in metre space, 0.35 m for building
+  outlines. Coordinates are rounded to 0.1 m.
+* **Classification.** OSM `highway=*` is mapped to seven game classes with carriageway
+  widths, widened by `lanes` where tagged.
+* **Heights.** `height` → `building:levels × 3.2 m` → a per-`building` type table.
+* **Stats.** Road count, total carriageway length, and the list of named roads, which the
+  tests assert against.
 
-## What the importer does
+## 3. Verify
 
-`tools/import_osm.py` is intentionally conservative and dependency-free:
+* `tests/test_world_manifest.py` — 26 checks on the manifest: the place is Darsi 523247 in
+  Prakasam, the licence is recorded, named Darsi roads and POIs survived the import, no
+  vertex escapes the extract, every footprint is a polygon, heights are plausible, and the
+  town centre has a dense street network.
+* `tools/render_map.py` → `docs/darsi_map_preview.svg`, a plain top-down render that can be
+  compared side by side with openstreetmap.org.
+* `tools/capture.gd` → `docs/screenshots/*.png`, rendered in CI with software OpenGL.
 
-- reads OSM XML nodes and ways;
-- keeps `highway` ways and converts their node references to `[lat, lon]` vertices;
-- keeps public `amenity`, `shop`, `tourism`, and `historic` nodes as landmark references;
-- preserves the base manifest's place identity and procedural fields;
-- marks imported geometry `verified_source: openstreetmap` but does **not** pretend that OSM tags verify the visual building shape;
-- leaves visual buildings, traffic, vegetation, weather, and detailed terrain procedural.
+## 4. Build — `scripts/world_builder.gd`
 
-Ways that use missing nodes or lack a `highway` tag are skipped with a warning. Building polygons are not turned into exact visual buildings by the starter importer: use their centroids as references and create plausible geometry in the game unless you have separately reviewed a legal, suitable building dataset.
+### Real, straight from OSM
 
-## Accuracy boundary
+| Element | Source |
+|---|---|
+| Road carriageways, shoulders, centre lines, edge lines | `way[highway]` geometry |
+| Building walls, roofs, parapets, temple towers | `way[building]` / `relation[building]` footprints |
+| Tanks with their earth bunds | `way[natural=water]`, `landuse=reservoir` |
+| Canals and streams, including the Ongole branch canal | `waterway=*` |
+| Railway ballast and rails | `railway=*` |
+| Landmark names, kinds and positions | tagged nodes (`amenity`, `shop`, `place`, …) |
+| Fuel station forecourts, the bus station, temples | built at their real POI coordinates |
 
-The current starter manifest contains a public coordinate anchor and named corridor references, while its road vertices and POI positions are explicitly approximate. The game UI and README repeat this distinction so the prototype cannot accidentally be marketed as a verified 1:1 Darsi recreation. After importing reviewed OSM geometry, update `provenance.verified` and keep `provenance.procedural_or_unverified` for generated visuals.
+### Generated, because OSM does not have it
+
+| Element | How it is derived | Marked as |
+|---|---|---|
+| ~1,000 street-frontage plots | Laid out along the **real** street centrelines: 6.5–11.5 m frontage, 1.8–4 m setback, compound wall with gate pillars, plinth, flat RCC roof, parapet, overhead water tank; density falls off with distance from the centre; shopfronts (shutter, signboard, awning) on classified roads | `procedural_infill` metadata on the node and its parent |
+| ~420 fields | Bunded, cropped rectangles placed on land the real road network leaves empty, suppressed near the centre | `Fields` node |
+| ~1,500 poles and lamps | Spaced along real road geometry, alternating sides | `StreetFurniture` node |
+| ~1,000 trees | Along real roads and scattered in open land | `Vegetation` node |
+| Ground tone patches | Random dry-soil variation | `Ground` node |
+| Building heights | `building:levels` where tagged, otherwise a type table | recorded in the manifest |
+
+Nothing in the generated set moves, renames or invents a *road*: the network and the
+footprints are untouched OSM.
+
+## Licensing
+
+Map data © OpenStreetMap contributors, ODbL 1.0 — <https://www.openstreetmap.org/copyright>.
+The attribution travels with the data: it is stored in `data/darsi_world.json`, shown in the
+HUD, and printed on the expanded map. No imagery, Street View, or proprietary POI data is
+used.

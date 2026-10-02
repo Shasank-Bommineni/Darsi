@@ -470,10 +470,13 @@ func _build_infill_buildings() -> int:
 
 				var levels := 1
 				var roll := rng.randf()
+				var central := centre_distance < 700.0
 				if is_main:
-					levels = 2 if roll < 0.55 else (3 if roll < 0.85 else 1)
+					levels = 2 if roll < 0.42 else (3 if roll < 0.78 else (4 if roll < 0.9 and central else 1))
+				elif central:
+					levels = 1 if roll < 0.38 else (2 if roll < 0.82 else 3)
 				else:
-					levels = 1 if roll < 0.55 else (2 if roll < 0.92 else 3)
+					levels = 1 if roll < 0.68 else (2 if roll < 0.95 else 3)
 				var height := 3.1 * float(levels) + rng.randf_range(-0.2, 0.3)
 				var angle := atan2(tangent.y, tangent.x)
 				var node := _plot_building(centre, Vector2(frontage, depth), angle, height, levels, is_main, normal)
@@ -505,6 +508,8 @@ func _plot_building(centre: Vector2, size: Vector2, angle: float, height: float,
 
 	var body_size := Vector3(size.x * rng.randf_range(0.72, 0.92), height, size.y * rng.randf_range(0.65, 0.85))
 	_add_box(root, body_size, Vector3(0.0, height * 0.5, 0.0), wall_colour, "House")
+	# Flat RCC roof slab - weathered grey concrete, not the wall colour.
+	_add_box(root, Vector3(body_size.x + 0.26, 0.18, body_size.z + 0.26), Vector3(0.0, height + 0.05, 0.0), Color("#8d8a83").lerp(Color("#6f6a63"), rng.randf()), "RoofSlab")
 	# Parapet wall around the flat roof.
 	_add_box(root, Vector3(body_size.x + 0.22, 0.55, 0.22), Vector3(0.0, height + 0.27, -body_size.z * 0.5), trim_colour, "ParapetN")
 	_add_box(root, Vector3(body_size.x + 0.22, 0.55, 0.22), Vector3(0.0, height + 0.27, body_size.z * 0.5), trim_colour, "ParapetS")
