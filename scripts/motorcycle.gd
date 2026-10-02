@@ -316,13 +316,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 	# ----- engine, gearbox, drive force
 	var wheel_rev_per_s := abs_speed / (TAU * WHEEL_RADIUS)
-	var ratio: float = GEAR_RATIOS[gear] * FINAL_DRIVE
+	var ratio: float = PRIMARY_RATIO * GEAR_RATIOS[gear] * FINAL_DRIVE
 	engine_rpm = clampf(maxf(wheel_rev_per_s * 60.0 * ratio, IDLE_RPM), IDLE_RPM, REDLINE_RPM)
 
 	var drive_force := 0.0
 	if engine_running and fuel > 0.0 and throttle > 0.01 and gear > 0:
 		var torque := _engine_torque(engine_rpm) * float(settings.power)
-		var wheel_torque: float = torque * GEAR_RATIOS[gear] * FINAL_DRIVE * 0.92
+		var wheel_torque: float = torque * PRIMARY_RATIO * GEAR_RATIOS[gear] * FINAL_DRIVE * 0.92
 		drive_force = wheel_torque / WHEEL_RADIUS * throttle
 		# Clutch slip off the line so first gear does not launch the bike like a rocket.
 		if abs_speed < 2.0:

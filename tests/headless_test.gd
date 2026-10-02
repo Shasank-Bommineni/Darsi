@@ -174,7 +174,7 @@ func _test_motorcycle(builder: DarsiWorldBuilder) -> void:
 	# Steer right and check that the bike yaws and leans into the corner.
 	var heading_before := bike.get_heading_degrees()
 	var leaned := 0.0
-	for i in range(180):
+	for i in range(240):
 		bike.set_controls(0.55, 0.0, 0.0, 1.0)
 		await physics_frame
 		leaned = minf(leaned, bike.get_lean_degrees())
