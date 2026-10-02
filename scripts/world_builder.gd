@@ -376,10 +376,10 @@ func _build_infill_buildings() -> int:
 				var sample := _sample_polyline(points, travelled + frontage * 0.5)
 				var position: Vector2 = sample.position
 				var tangent: Vector2 = sample.tangent
-				var normal := Vector2(-tangent.y, tangent.x) * side
+				var normal: Vector2 = Vector2(-tangent.y, tangent.x) * side
 				var setback := rng.randf_range(2.5, 5.5)
 				var depth := rng.randf_range(7.0, 13.0)
-				var centre := position + normal * (half_width + setback + depth * 0.5)
+				var centre: Vector2 = position + normal * (half_width + setback + depth * 0.5)
 				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
 					travelled += frontage
 					continue
@@ -685,7 +685,8 @@ func _build_street_furniture() -> void:
 		var side := 1.0
 		while travelled < total:
 			var sample := _sample_polyline(points, travelled)
-			var normal := Vector2(-sample.tangent.y, sample.tangent.x) * side
+			var sample_tangent: Vector2 = sample.tangent
+			var normal: Vector2 = Vector2(-sample_tangent.y, sample_tangent.x) * side
 			var p: Vector2 = sample.position + normal * (float(road.width) * 0.5 + 1.6)
 			if abs(p.x) < half_x and abs(p.y) < half_y:
 				var t := Transform3D(Basis(), plane_to_world(p.x, p.y) + Vector3(0, 4.25, 0))
@@ -754,7 +755,8 @@ func _build_vegetation() -> void:
 			if rng.randf() < 0.45:
 				var sample := _sample_polyline(points, travelled)
 				var side := 1.0 if rng.randf() < 0.5 else -1.0
-				var normal := Vector2(-sample.tangent.y, sample.tangent.x) * side
+				var sample_tangent: Vector2 = sample.tangent
+				var normal: Vector2 = Vector2(-sample_tangent.y, sample_tangent.x) * side
 				var p: Vector2 = sample.position + normal * (float(road.width) * 0.5 + rng.randf_range(2.5, 5.0))
 				if abs(p.x) < half_x and abs(p.y) < half_y and not _is_occupied(Rect2(p - Vector2(2, 2), Vector2(4, 4))):
 					var base := plane_to_world(p.x, p.y)

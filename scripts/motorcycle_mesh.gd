@@ -225,7 +225,7 @@ static func build(body_colour := Color(0.72, 0.16, 0.13)) -> Dictionary:
 	for side in [-1.0, 1.0]:
 		_box(root, Vector3(0.05, 0.14, 0.30), Vector3(side * 0.155, 0.86, 0.02), paint_main, Vector3(0.0, 0.0, side * 0.22), "TankKneeGrip")
 	_cyl(root, 0.045, 0.02, Vector3(0.0, 1.063, -0.22), chrome, Vector3.ZERO, "FillerCap", 12)
-	_box(root, Vector3(0.235, 0.04, 0.09), Vector3(0.0, 1.03, -0.02), paint(Color(0.86, 0.86, 0.88), 0.3, 0.8), "TankStripe")
+	_box(root, Vector3(0.235, 0.04, 0.09), Vector3(0.0, 1.03, -0.02), paint(Color(0.86, 0.86, 0.88), 0.3, 0.8), Vector3.ZERO, "TankStripe")
 
 	# Seat: rider saddle + pillion step.
 	_box(root, Vector3(0.26, 0.085, 0.42), Vector3(0.0, 0.80, 0.26), seat_vinyl, Vector3(-0.02, 0, 0), "RiderSeat")
