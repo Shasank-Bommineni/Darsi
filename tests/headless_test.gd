@@ -187,7 +187,10 @@ func _test_motorcycle(builder: DarsiWorldBuilder) -> void:
 	for i in range(180):
 		bike.set_controls(0.5, 0.0, 0.0, 1.0)
 		await physics_frame
-		leaned = maxf(leaned, absf(bike.get_lean_degrees()))
+		# Only sample the lean while the bike is genuinely riding: a knock from street
+		# furniture can throw it over, and that is a crash, not a cornering angle.
+		if absf(bike.get_speed_mps()) > 2.0 and bike.global_transform.basis.y.dot(Vector3.UP) > 0.8:
+			leaned = maxf(leaned, absf(bike.get_lean_degrees()))
 	var heading_after := bike.get_heading_degrees()
 	var turned: float = absf(wrapf(heading_after - heading_before, -180.0, 180.0))
 	print("  entered the corner at %.1f m/s, heading changed by %.1f deg, peak lean %.1f deg, exit %.1f m/s"
