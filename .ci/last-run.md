@@ -1,7 +1,7 @@
 # Last CI run
 
-commit: 0719f45e60cfb15e2324b1322cd0b01e55296df1
-parse: success  tests: success  smoke: success  export: success
+commit: 161b851e91b8a76b8162cdbd2477d97309b4c30e
+parse: success  tests: failure  smoke: success  export: success
 
 ```
 === Darsi world manifest validation ===
@@ -89,7 +89,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 594 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+  built in 333 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
   PASS  plots filled along the real streets (509)
   PASS  drivable road graph built (194 segments)
@@ -121,54 +121,95 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  the bike moved across the world
   PASS  the bike is still upright under power
   PASS  fuel is being consumed (8.99 l)
-  heading changed by 28.0 deg, peak lean -52.6 deg
-  PASS  steering changes the heading (28.0 deg)
-  PASS  the bike leans into the corner (-52.6 deg)
+  heading changed by 23.9 deg, peak lean -50.9 deg
+  PASS  steering changes the heading (23.9 deg)
+  PASS  the bike leans into the corner (-50.9 deg)
   PASS  the bike did not fall over while cornering
+  FAIL  the lean angle stays inside the tyre's edge (-50.9 deg)
+  FAIL  the bike is rolling before the brake test (0.0 m/s)
   braking: 0.0 -> 0.0 m/s
   PASS  the brakes stop the bike
   PASS  ride modes cycle
   PASS  refuelling fills the tank
 
-=== 52 checks, 0 failures ===
+=== 54 checks, 2 failures ===
+  FAILED: the lean angle stays inside the tyre's edge (-50.9 deg)
+  FAILED: the bike is rolling before the brake test (0.0 m/s)
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
 Darsi built: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
-=== export ===
+=== screenshots ===
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:360)
+OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
+libpulse.so.0: cannot open shared object file: No such file or directory
+libpulse.so.0: cannot open shared object file: No such file or directory
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5731:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
+   at: init_output_device (drivers/alsa/audio_driver_alsa.cpp:90)
+WARNING: All audio drivers failed, falling back to the dummy driver.
+     at: initialize (servers/audio_server.cpp:247)
 
-savepack: begin: Packing steps: 102
-	savepack: step 2: Storing File: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
-	savepack: step 2: Storing File: res://icon.svg.import
-	savepack: step 10: Storing File: res://data/darsi_world.json
-	savepack: step 18: Storing File: res://.godot/imported/darsi_map_preview.svg-46fd48b510fce2e0dd7676004c04fd7b.ctex
-	savepack: step 18: Storing File: res://docs/darsi_map_preview.svg.import
-	savepack: step 27: Storing File: res://.godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn
-	savepack: step 35: Storing File: res://scripts/hud.gdc
-	savepack: step 43: Storing File: res://scripts/main.gdc
-	savepack: step 52: Storing File: res://scripts/minimap.gdc
-	savepack: step 60: Storing File: res://scripts/motorcycle.gdc
-	savepack: step 68: Storing File: res://scripts/motorcycle_mesh.gdc
-	savepack: step 77: Storing File: res://scripts/traffic_vehicle.gdc
-	savepack: step 85: Storing File: res://scripts/world_builder.gdc
-	savepack: step 93: Storing File: res://tests/headless_test.gdc
-	savepack: step 93: Storing File: res://scenes/main.tscn.remap
-	savepack: step 93: Storing File: res://scripts/hud.gd.remap
-	savepack: step 93: Storing File: res://scripts/main.gd.remap
-	savepack: step 93: Storing File: res://scripts/minimap.gd.remap
-	savepack: step 93: Storing File: res://scripts/motorcycle.gd.remap
-	savepack: step 93: Storing File: res://scripts/motorcycle_mesh.gd.remap
-	savepack: step 93: Storing File: res://scripts/traffic_vehicle.gd.remap
-	savepack: step 93: Storing File: res://scripts/world_builder.gd.remap
-	savepack: step 93: Storing File: res://tests/headless_test.gd.remap
-	savepack: step 93: Storing File: res://.godot/global_script_class_cache.cfg
-	savepack: step 93: Storing File: res://icon.svg
-	savepack: step 93: Storing File: res://.godot/uid_cache.bin
-	savepack: step 93: Storing File: res://project.binary
+stats: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+capturing 6 shots
+saved res://docs/screenshots/01_town_from_above.png (ok)
+saved res://docs/screenshots/02_central_junction.png (ok)
+saved res://docs/screenshots/03_rider_view.png (ok)
+saved res://docs/screenshots/04_motorcycle_detail.png (ok)
+saved res://docs/screenshots/05_main_road.png (ok)
+saved res://docs/screenshots/06_street_level.png (ok)
+total 1064
+drwxr-xr-x 2 runner runner   4096 Oct  2 17:04 .
+drwxr-xr-x 3 runner runner   4096 Oct  2 17:04 ..
+-rw-r--r-- 1 runner runner  98370 Oct  2 17:04 01_town_from_above.png
+-rw-r--r-- 1 runner runner  58599 Oct  2 17:04 02_central_junction.png
+-rw-r--r-- 1 runner runner 218429 Oct  2 17:04 03_rider_view.png
+-rw-r--r-- 1 runner runner 267058 Oct  2 17:04 04_motorcycle_detail.png
+-rw-r--r-- 1 runner runner 191815 Oct  2 17:04 05_main_road.png
+-rw-r--r-- 1 runner runner 231782 Oct  2 17:04 06_street_level.png
+=== export ===
+	savepack: step 37: Storing File: res://docs/screenshots/06_street_level.png.import
+	savepack: step 42: Storing File: res://.godot/imported/darsi_map_preview.svg-46fd48b510fce2e0dd7676004c04fd7b.ctex
+	savepack: step 42: Storing File: res://docs/darsi_map_preview.svg.import
+	savepack: step 47: Storing File: res://.godot/exported/133200997/export-a637d77a8079708f17d7f985c5beb852-capture.scn
+	savepack: step 52: Storing File: res://.godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn
+	savepack: step 57: Storing File: res://scripts/hud.gdc
+	savepack: step 62: Storing File: res://scripts/main.gdc
+	savepack: step 67: Storing File: res://scripts/minimap.gdc
+	savepack: step 72: Storing File: res://scripts/motorcycle.gdc
+	savepack: step 77: Storing File: res://scripts/motorcycle_mesh.gdc
+	savepack: step 82: Storing File: res://scripts/traffic_vehicle.gdc
+	savepack: step 87: Storing File: res://scripts/world_builder.gdc
+	savepack: step 92: Storing File: res://tests/headless_test.gdc
+	savepack: step 97: Storing File: res://tools/capture.gdc
+	savepack: step 97: Storing File: res://scenes/capture.tscn.remap
+	savepack: step 97: Storing File: res://scenes/main.tscn.remap
+	savepack: step 97: Storing File: res://scripts/hud.gd.remap
+	savepack: step 97: Storing File: res://scripts/main.gd.remap
+	savepack: step 97: Storing File: res://scripts/minimap.gd.remap
+	savepack: step 97: Storing File: res://scripts/motorcycle.gd.remap
+	savepack: step 97: Storing File: res://scripts/motorcycle_mesh.gd.remap
+	savepack: step 97: Storing File: res://scripts/traffic_vehicle.gd.remap
+	savepack: step 97: Storing File: res://scripts/world_builder.gd.remap
+	savepack: step 97: Storing File: res://tests/headless_test.gd.remap
+	savepack: step 97: Storing File: res://tools/capture.gd.remap
+	savepack: step 97: Storing File: res://.godot/global_script_class_cache.cfg
+	savepack: step 97: Storing File: res://icon.svg
+	savepack: step 97: Storing File: res://.godot/uid_cache.bin
+	savepack: step 97: Storing File: res://project.binary
 savepack: end
-total 64844
-drwxr-xr-x 2 runner runner     4096 Oct  2 16:59 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 16:59 ..
--rw-rw-rw- 1 runner runner   314176 Oct  2 16:59 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 16:59 darsi.x86_64
+total 65536
+drwxr-xr-x 2 runner runner     4096 Oct  2 17:04 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 17:04 ..
+-rw-rw-rw- 1 runner runner  1021856 Oct  2 17:04 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 17:04 darsi.x86_64
 ```
