@@ -106,6 +106,9 @@ func _ready() -> void:
 	# A low centre of mass behind the front axle, as on a real commuter bike.
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	center_of_mass = Vector3(0.0, 0.42, 0.05)
+	# A real motorcycle's inertia tensor. Deriving it from the collision capsule gives a
+	# roll inertia of ~7 kg m^2, which is far too small for stable balance control.
+	inertia = Vector3(72.0, 64.0, 28.0)  # x = pitch, y = yaw, z = roll
 	linear_damp = 0.0
 	angular_damp = 0.6
 
@@ -390,27 +393,29 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var current_lean := asin(clampf(up.dot(forward.cross(Vector3.UP).normalized()), -1.0, 1.0))
 		var roll_rate := state.angular_velocity.dot(forward)
 		var assist: float = float(settings.assist)
-		var balance_torque := clampf((_lean_target - current_lean) * 5200.0 * assist - roll_rate * 1500.0 * assist, -9000.0, 9000.0)
-		# A stopped bike is held up by the rider's feet.
-		if abs_speed < 1.5:
-			balance_torque += -current_lean * 4200.0 - roll_rate * 1800.0
-		state.apply_torque(forward * balance_torque)
 
-		# Damp any yaw that is not matched by the steering input - stops tank-slappers.
+		# Inertia-scaled, critically damped balance control. Writing the gains as a natural
+		# frequency keeps the controller stable whatever inertia the body ends up with.
+		var roll_inertia := 1.0 / maxf(state.inverse_inertia.z, 0.0001)
+		var omega := 6.5 * clampf(assist, 0.5, 1.6)
+		var zeta := 1.15
+		var balance_torque: float = roll_inertia * (omega * omega * (_lean_target - current_lean) - 2.0 * zeta * omega * roll_rate)
+		if abs_speed < 1.5:
+			# Standing still the rider simply dabs a foot down and holds it level.
+			balance_torque += roll_inertia * (28.0 * (0.0 - current_lean) - 9.0 * roll_rate)
+		state.apply_torque(forward * clampf(balance_torque, -4000.0, 4000.0))
+
+		# Yaw: follow the kinematic steering rate, and damp anything else (no tank-slappers).
+		var yaw_inertia := 1.0 / maxf(state.inverse_inertia.y, 0.0001)
 		var yaw_rate := state.angular_velocity.dot(up)
 		var desired_yaw := speed * tan(_steer_angle) / WHEELBASE
-		state.apply_torque(up * clampf((desired_yaw - yaw_rate) * 900.0 * assist, -4000.0, 4000.0))
+		state.apply_torque(up * clampf(yaw_inertia * (desired_yaw - yaw_rate) * 5.0 * assist, -3000.0, 3000.0))
 
-		# Keep the pitch sensible (no endless wheelies/stoppies).
+		# Pitch: allow a little squat and dive, but no endless wheelies or stoppies.
+		var pitch_inertia := 1.0 / maxf(state.inverse_inertia.x, 0.0001)
 		var pitch_rate := state.angular_velocity.dot(right)
 		var pitch := asin(clampf(forward.dot(Vector3.UP), -1.0, 1.0))
-		state.apply_torque(right * clampf(-pitch * 3000.0 - pitch_rate * 1200.0, -6000.0, 6000.0))
-
-	# Safety net: keep the solver inside sane bounds no matter what the player hits.
-	if state.linear_velocity.length() > MAX_SPEED:
-		state.linear_velocity = state.linear_velocity.normalized() * MAX_SPEED
-	if state.angular_velocity.length() > MAX_SPIN:
-		state.angular_velocity = state.angular_velocity.normalized() * MAX_SPIN
+		state.apply_torque(right * clampf(pitch_inertia * (-pitch * 22.0 - pitch_rate * 8.0), -3000.0, 3000.0))
 
 	odometer_m += absf(speed) * delta
 
