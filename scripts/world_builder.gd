@@ -30,20 +30,23 @@ var _materials: Dictionary = {}
 ## Coarse occupancy grid (CELL metre cells) so plot placement is O(1) per candidate
 ## instead of testing thousands of rectangles. Two layers: hard blockers (buildings,
 ## water) and road corridors.
-const CELL := 2.0
+const CELL := 1.5
 var _blocked: Dictionary = {}               # cell key -> true, buildings/water/plots
 var _road_cells: Dictionary = {}            # cell key -> true, carriageway + 1 m
 var _stats: Dictionary = {}
 
 # ------------------------------------------------------------------ palettes
+## Whitewash, lime wash and the pastel distempers you actually see on houses here.
 const WALL_COLOURS := [
-	Color("#eae3d2"), Color("#f2ead8"), Color("#e4dcc6"), Color("#dfd3bb"),
-	Color("#f0e2c8"), Color("#d9e4e0"), Color("#efd9c4"), Color("#e8e8df"),
-	Color("#dfe7ea"), Color("#f4ecdd"), Color("#e2cfc0"), Color("#cfd9cc"),
+	Color("#e8e0cc"), Color("#f0e7d2"), Color("#d8cdb2"), Color("#cdbb9b"),
+	Color("#e6c9a0"), Color("#b9cfc6"), Color("#e4b89a"), Color("#dcdcd0"),
+	Color("#bdd0da"), Color("#f2e4c6"), Color("#cfa98f"), Color("#b6c4ab"),
+	Color("#e3b7b2"), Color("#c9b7cf"), Color("#9fb9a8"), Color("#d6c08a"),
+	Color("#a9bcc9"), Color("#e2cf9c"), Color("#c6a6a0"), Color("#aec3b0"),
 ]
 const TRIM_COLOURS := [
-	Color("#b8482f"), Color("#2f6b56"), Color("#2b4a74"), Color("#8c5a2b"),
-	Color("#6a3b6e"), Color("#a3812a"),
+	Color("#a8422c"), Color("#2b6450"), Color("#27436a"), Color("#80522a"),
+	Color("#60356a"), Color("#96761f"), Color("#b5651d"), Color("#3f6f3a"),
 ]
 const SHUTTER_COLOURS := [
 	Color("#3c6ea5"), Color("#2f7a52"), Color("#a84a2f"), Color("#6b6f73"), Color("#8a6d2f"),
@@ -138,7 +141,7 @@ func _build_ground() -> void:
 	mesh.size = Vector2(half_x * 2.4, half_y * 2.4)
 	mesh.subdivide_width = 8
 	mesh.subdivide_depth = 8
-	mesh.material = _material(Color("#9a8464"), 1.0)
+	mesh.material = _material(Color("#9c8c6e"), 1.0)
 	plane.mesh = mesh
 	ground.add_child(plane)
 
@@ -331,7 +334,7 @@ func _build_roads() -> void:
 			surface.set_meta("osm_id", road.osm_id)
 			surface.set_meta("name", road.name)
 			parent.add_child(surface)
-		_occupy_polyline(points, width * 0.5 + 1.2)
+		_occupy_polyline(points, width * 0.5 + 0.6)
 
 		# Lane markings on the classified network only, exactly like the real roads here.
 		if road_class in ["highway", "arterial"]:
@@ -421,7 +424,7 @@ func _build_infill_buildings() -> int:
 	add_child(parent)
 
 	var built := 0
-	var budget := 1800
+	var budget := 2600
 	var streets: Array = []
 	for road in world.roads:
 		if String(road["class"]) in ["neighbourhood", "lane", "collector", "arterial"]:
@@ -443,18 +446,18 @@ func _build_infill_buildings() -> int:
 		var is_main := road_class in ["arterial", "collector"]
 
 		for side in [-1.0, 1.0]:
-			var travelled := rng.randf_range(0.0, 14.0)
+			var travelled := rng.randf_range(0.0, 9.0)
 			var total := _polyline_length(points)
 			while travelled < total - 8.0 and built < budget:
 				var frontage := rng.randf_range(6.5, 11.5)
 				if rng.randf() > density:
-					travelled += frontage + rng.randf_range(2.0, 22.0)
+					travelled += frontage + rng.randf_range(1.0, 12.0)
 					continue
 				var sample := _sample_polyline(points, travelled + frontage * 0.5)
 				var position: Vector2 = sample.position
 				var tangent: Vector2 = sample.tangent
 				var normal: Vector2 = Vector2(-tangent.y, tangent.x) * side
-				var setback := rng.randf_range(3.6, 6.0)
+				var setback := rng.randf_range(1.6, 3.6)
 				var depth := rng.randf_range(7.0, 13.0)
 				var centre: Vector2 = position + normal * (half_width + setback + depth * 0.5)
 				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
@@ -479,7 +482,7 @@ func _build_infill_buildings() -> int:
 				parent.add_child(node)
 				_mark_rect(_blocked, footprint)
 				built += 1
-				travelled += frontage + rng.randf_range(0.6, 4.0)
+				travelled += frontage + rng.randf_range(0.2, 1.6)
 	return built
 
 
@@ -539,13 +542,19 @@ func _plot_building(centre: Vector2, size: Vector2, angle: float, height: float,
 	else:
 		# Compound wall with a gate.
 		var wall_z := -size.y * 0.5
-		var gate_w := 2.6
+		var gate_w := 2.4
 		var run := (size.x - gate_w) * 0.5
-		if run > 0.6:
+		if run > 0.5:
 			for side in [-1.0, 1.0]:
-				_add_box(root, Vector3(run, 1.5, 0.18), Vector3(side * (gate_w + run) * 0.5, 0.75, wall_z), wall_colour.darkened(0.08), "CompoundWall")
-		_add_box(root, Vector3(gate_w, 1.3, 0.1), Vector3(0.0, 0.65, wall_z), trim_colour, "Gate")
+				_add_box(root, Vector3(run, 1.6, 0.20), Vector3(side * (gate_w + run) * 0.5, 0.80, wall_z), wall_colour.darkened(0.12), "CompoundWall")
+				_add_box(root, Vector3(run, 0.10, 0.26), Vector3(side * (gate_w + run) * 0.5, 1.63, wall_z), trim_colour, "WallCoping")
+		# Gate pillars and a painted steel gate.
+		for side in [-1.0, 1.0]:
+			_add_box(root, Vector3(0.28, 1.95, 0.28), Vector3(side * gate_w * 0.5, 0.97, wall_z), wall_colour.darkened(0.2), "GatePillar")
+		_add_box(root, Vector3(gate_w, 1.35, 0.08), Vector3(0.0, 0.68, wall_z), trim_colour, "Gate")
 		_add_box(root, Vector3(0.9, 2.05, 0.1), Vector3(0.0, 1.02, face_z), Color("#4a3a28"), "Door")
+		# Plinth: houses here sit a step above the street.
+		_add_box(root, Vector3(size.x * 0.9, 0.35, size.y * 0.8), Vector3(0.0, 0.17, 0.0), wall_colour.darkened(0.3), "Plinth")
 
 	# Collision: a single box is enough and keeps the physics broadphase cheap.
 	var body := StaticBody3D.new()
