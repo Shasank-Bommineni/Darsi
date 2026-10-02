@@ -108,7 +108,7 @@ export class Hud {
       <div id="hints" class="panel">
         <b>W</b> throttle &nbsp; <b>S</b> brake &nbsp; <b>A</b>/<b>D</b> steer &nbsp; <b>SPACE</b> hard brake<br>
         <span class="more"><b>R</b> reset &nbsp; <b>C</b> camera &nbsp; <b>M</b> map &nbsp; <b>E</b> interact &nbsp; <b>P</b> photo &nbsp; <b>H</b> horn<br>
-        <b>N</b> time &nbsp; <b>L</b> lights &nbsp; <b>F3</b> debug</span>
+        <b>N</b> time &nbsp; <b>G</b> weather &nbsp; <b>L</b> lights &nbsp; <b>F3</b> debug</span>
       </div>
       <div id="photobar" class="panel">PHOTO MODE — <b>A/D</b> orbit · <b>W/S</b> pitch · <b>Q/E</b> zoom
         <button id="shotbtn">SAVE SHOT</button><button id="exitphoto">EXIT</button></div>

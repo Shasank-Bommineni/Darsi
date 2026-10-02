@@ -224,7 +224,7 @@ class Game {
       this.sky.setHour(this.sky.hour + 3);
       this.hud.notify(`Time: ${fmtClock(this.sky.hour)}`);
     }
-    if (input.pressed('gearToggle')) {
+    if (input.pressed('weather')) {
       const w = this.sky.cycleWeather();
       this.hud.notify(`Weather: ${WEATHER[w].name}`);
     }

@@ -14,6 +14,8 @@
 //   photo     edge      P
 //   horn      bool      H
 //   lights    edge      L
+//   timeSkip  edge      N
+//   weather   edge      G
 
 import { clamp, isTouchDevice, moveToward } from './util.js';
 
@@ -40,7 +42,7 @@ const EDGE_KEYS = {
   KeyP: 'photo',
   KeyL: 'lights',
   KeyN: 'timeSkip',
-  KeyG: 'gearToggle',
+  KeyG: 'weather',
   F3: 'debug',
   Escape: 'pause',
   Backquote: 'debug',
