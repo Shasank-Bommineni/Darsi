@@ -2,6 +2,11 @@ name: Fetch Darsi OpenStreetMap data
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "tools/fetch_darsi_osm.py"
+      - "tools/build_world.py"
+      - ".github/workflows/fetch-osm.yml"
 
 permissions:
   contents: write
