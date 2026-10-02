@@ -27,9 +27,14 @@ ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
-    "https://overpass.osm.ch/api/interpreter",
+    "https://overpass.osm.jp/api/interpreter",
+    "https://overpass.openstreetmap.fr/api/interpreter",
     "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ]
+
+# A mirror that answers with an empty element list is broken, not authoritative:
+# the Darsi window provably contains hundreds of ways.
+MIN_ELEMENTS = 400
 
 USER_AGENT = "DarsiGame/0.3 (open-source game world build; https://github.com/Shasank-Bommineni/Darsi)"
 
@@ -95,10 +100,13 @@ def fetch(query: str, retries: int = 3) -> dict:
                 with urllib.request.urlopen(req, timeout=900) as resp:
                     payload = resp.read()
                 data = json.loads(payload)
-                if "elements" in data:
-                    print(f"     ok: {len(data['elements'])} elements, {len(payload)/1e6:.2f} MB", flush=True)
+                n = len(data.get("elements", []))
+                if n >= MIN_ELEMENTS:
+                    print(f"     ok: {n} elements, {len(payload)/1e6:.2f} MB", flush=True)
+                    data["_endpoint"] = url
                     return data
-                last_err = RuntimeError("no elements key")
+                last_err = RuntimeError(f"only {n} elements from {url} (mirror out of sync?)")
+                print(f"     rejected: {last_err}", flush=True)
             except Exception as exc:  # noqa: BLE001 - we genuinely want to try the next mirror
                 last_err = exc
                 print(f"     failed: {exc}", flush=True)
