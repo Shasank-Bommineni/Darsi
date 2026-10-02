@@ -1,7 +1,7 @@
 # Last CI run
 
-commit: 32ab0706488419627f3ede2bf3e5ece8dcdca3be
-parse: success  tests: failure  smoke: failure  export: success
+commit: 41f758e9b61db955e725849e54160c9779747a81
+parse: success  tests: failure  smoke: success  export: success
 
 ```
 === Darsi world manifest validation ===
@@ -89,9 +89,9 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 341 ms: { "street_poles": 1496, "trees": 1027, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 82, "landmarks": 27, "drivable_segments": 194 }
+  built in 344 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
-  FAIL  plots filled along the real streets (82)
+  PASS  plots filled along the real streets (509)
   PASS  drivable road graph built (194 segments)
   PASS  landmarks registered (27)
   PASS  road geometry node exists
@@ -109,93 +109,37 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  chassis collider exists
   PASS  both wheels exist as animated nodes
   PASS  the handlebars steer independently of the frame
-  PASS  the bike rests on its suspension (y = 0.46)
-  PASS  the bike stays upright at rest
-  speed after 6 s of throttle: 2457563 km/h, travelled 3899047.1 m
-  PASS  the engine actually accelerates the bike (2457563 km/h)
-  FAIL  top speed is plausible for a 150cc commuter (2457563 km/h)
-  PASS  the gearbox shifted up (gear 5)
-  PASS  the odometer recorded the ride (3899047.1 m)
-  PASS  the bike moved across the world
-  FAIL  the bike is still upright under power
-  PASS  fuel is being consumed (0.00 l)
-  heading changed by 7.2 deg, peak lean -89.5 deg
-  FAIL  steering changes the heading (7.2 deg)
-  PASS  the bike leans into the corner (-89.5 deg)
+  PASS  the bike rests on its suspension (y = 1.11)
+  FAIL  the bike stays upright at rest
+  speed after 6 s of throttle: 0 km/h, travelled 0.1 m
+  FAIL  the engine actually accelerates the bike (0 km/h)
+  PASS  top speed is plausible for a 150cc commuter (0 km/h)
+  FAIL  the gearbox shifted up (gear 1)
+  FAIL  the odometer recorded the ride (0.1 m)
+  FAIL  the bike moved across the world
+  PASS  the bike is still upright under power
+  PASS  fuel is being consumed (9.00 l)
+  heading changed by 0.0 deg, peak lean -8.4 deg
+  FAIL  steering changes the heading (0.0 deg)
+  PASS  the bike leans into the corner (-8.4 deg)
   PASS  the bike did not fall over while cornering
-  braking: 1155842.0 -> 18820.8 m/s
+  braking: 0.0 -> 0.0 m/s
   PASS  the brakes stop the bike
   PASS  ride modes cycle
   PASS  refuelling fills the tank
 
-=== 52 checks, 4 failures ===
-  FAILED: plots filled along the real streets (82)
-  FAILED: top speed is plausible for a 150cc commuter (2457563 km/h)
-  FAILED: the bike is still upright under power
-  FAILED: steering changes the heading (7.2 deg)
+=== 52 checks, 6 failures ===
+  FAILED: the bike stays upright at rest
+  FAILED: the engine actually accelerates the bike (0 km/h)
+  FAILED: the gearbox shifted up (gear 1)
+  FAILED: the odometer recorded the ride (0.1 m)
+  FAILED: the bike moved across the world
+  FAILED: steering changes the heading (0.0 deg)
 === smoke run ===
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-ERROR: Invalid polygon data, triangulation failed.
-   at: canvas_item_add_polygon (servers/rendering/renderer_canvas_cull.cpp:1607)
-=== export ===
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
+Darsi built: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+=== export ===
 savepack: begin: Packing steps: 102
 	savepack: step 2: Storing File: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
 	savepack: step 2: Storing File: res://icon.svg.import
@@ -225,9 +169,10 @@ savepack: begin: Packing steps: 102
 	savepack: step 93: Storing File: res://.godot/uid_cache.bin
 	savepack: step 93: Storing File: res://project.binary
 savepack: end
+cannot connect to daemon at tcp:5037: Connection refused
 total 64844
-drwxr-xr-x 2 runner runner     4096 Oct  2 16:41 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 16:41 ..
--rw-rw-rw- 1 runner runner   311584 Oct  2 16:41 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 16:41 darsi.x86_64
+drwxr-xr-x 2 runner runner     4096 Oct  2 16:47 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 16:47 ..
+-rw-rw-rw- 1 runner runner   313280 Oct  2 16:47 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 16:47 darsi.x86_64
 ```
