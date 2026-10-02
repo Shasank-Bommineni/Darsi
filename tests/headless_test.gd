@@ -185,8 +185,14 @@ func _test_motorcycle(builder: DarsiWorldBuilder) -> void:
 	_check(absf(leaned) > 2.0, "the bike leans into the corner (%.1f deg)" % leaned)
 	_check(bike.global_transform.basis.y.dot(Vector3.UP) > 0.6, "the bike did not fall over while cornering")
 
-	# Brakes.
+	_check(absf(leaned) < 50.0, "the lean angle stays inside the tyre's edge (%.1f deg)" % leaned)
+
+	# Brakes: get back up to speed first, then grab both.
+	for i in range(180):
+		bike.set_controls(1.0, 0.0, 0.0, 0.0)
+		await physics_frame
 	var speed_before := absf(bike.get_speed_mps())
+	_check(speed_before > 5.0, "the bike is rolling before the brake test (%.1f m/s)" % speed_before)
 	for i in range(150):
 		bike.set_controls(0.0, 1.0, 1.0, 0.0)
 		await physics_frame

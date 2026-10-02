@@ -388,7 +388,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_lean_target = clampf(atan(speed * speed * turn_radius_curvature / 9.81), -MAX_LEAN, MAX_LEAN)
 		# Counter-steering feel: at speed, pushing the bar leans the bike the other way first.
 		if abs_speed > 6.0:
-			_lean_target = clampf(_lean_target + steer_input * 0.18, -MAX_LEAN, MAX_LEAN)
+			_lean_target = clampf(_lean_target + steer_input * 0.10, -MAX_LEAN, MAX_LEAN)
 
 		var current_lean := asin(clampf(up.dot(forward.cross(Vector3.UP).normalized()), -1.0, 1.0))
 		var roll_rate := state.angular_velocity.dot(forward)
@@ -398,11 +398,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# frequency keeps the controller stable whatever inertia the body ends up with.
 		var roll_inertia := 1.0 / maxf(state.inverse_inertia.z, 0.0001)
 		var omega := 6.5 * clampf(assist, 0.5, 1.6)
-		var zeta := 1.15
+		var zeta := 1.35
 		var balance_torque: float = roll_inertia * (omega * omega * (_lean_target - current_lean) - 2.0 * zeta * omega * roll_rate)
 		if abs_speed < 1.5:
 			# Standing still the rider simply dabs a foot down and holds it level.
 			balance_torque += roll_inertia * (28.0 * (0.0 - current_lean) - 9.0 * roll_rate)
+		if absf(current_lean) > MAX_LEAN:
+			# Past the edge of the tyre the rider physically cannot lean further.
+			balance_torque += roll_inertia * (MAX_LEAN * signf(current_lean) - current_lean) * 60.0
 		state.apply_torque(forward * clampf(balance_torque, -4000.0, 4000.0))
 
 		# Yaw: follow the kinematic steering rate, and damp anything else (no tank-slappers).
