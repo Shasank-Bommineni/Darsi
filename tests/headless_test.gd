@@ -143,6 +143,17 @@ func _test_motorcycle(builder: DarsiWorldBuilder) -> void:
 		bike.set_controls(0.0, 0.0, 0.0, 0.0)
 		await physics_frame
 	var settled_height := bike.global_position.y
+	print("  spawn %s -> settled %s, contacts front=%s rear=%s, up=%s" % [
+		spawn, bike.global_position, bike.has_front_contact(), bike.has_rear_contact(), bike.global_transform.basis.y])
+	var space := bike.get_world_3d().direct_space_state
+	var probe := PhysicsRayQueryParameters3D.create(bike.global_position + Vector3(0, 1.0, 0), bike.global_position - Vector3(0, 4.0, 0))
+	probe.exclude = [bike.get_rid()]
+	var hit := space.intersect_ray(probe)
+	if hit.is_empty():
+		print("  nothing under the bike")
+	else:
+		var collider: Node = hit.collider
+		print("  under the bike: %s at %s (normal %s)" % [collider.get_path(), hit.position, hit.normal])
 	_check(settled_height > -0.5 and settled_height < 2.0, "the bike rests on its suspension (y = %.2f)" % settled_height)
 	_check(bike.global_transform.basis.y.dot(Vector3.UP) > 0.9, "the bike stays upright at rest")
 

@@ -190,6 +190,14 @@ func sound_horn() -> void:
 	horn_timer = 0.6
 
 
+func has_front_contact() -> bool:
+	return _front_contact
+
+
+func has_rear_contact() -> bool:
+	return _rear_contact
+
+
 func get_speed_mps() -> float:
 	return linear_velocity.dot(-global_transform.basis.z)
 
