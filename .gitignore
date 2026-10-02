@@ -8,3 +8,11 @@ user://
 *.import
 __pycache__/
 .pytest_cache/
+
+# node / web runtime
+node_modules/
+game/node_modules/
+game/dist/
+game/.vite/
+*.log
+!data/acquire.log

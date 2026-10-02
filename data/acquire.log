@@ -1,0 +1,13 @@
+Darsi window: south=15.731721 west=79.638449 north=15.807180 east=79.716859
+  -> https://overpass-api.de/api/interpreter (attempt 1)
+     failed: HTTP Error 504: Gateway Timeout
+  -> https://overpass.kumi.systems/api/interpreter (attempt 1)
+     ok: 606 elements, 0.67 MB
+wrote data/osm/darsi_osm.json (0.50 MB, 606 elements)
+DEM window: 15.72274,79.62912 .. 15.81616,79.72619
+terrarium z=13: 3x3 tiles (9 requests)
+wrote data/dem/darsi_dem.npz (0.31 MB) grid=(768, 768) min=57.0 max=357.0 mean=101.7
+osm elements: 606
+[('highway', 319), ('building', 136), ('name', 66), ('power', 60), ('amenity', 30), ('source', 25), ('railway', 17), ('landuse', 15), ('place', 12), ('addr:district', 12), ('addr:full', 12), ('addr:postcode', 12), ('addr:state', 12), ('electrified', 12), ('maxspeed', 12), ('start_date', 12), ('bridge', 11), ('layer', 11), ('natural', 10), ('ref', 9), ('network', 7), ('name:te', 6), ('wikidata', 6), ('water', 6), ('construction', 5), ('waterway', 4), ('addr:street', 3), ('operator', 3), ('alt_name', 3), ('crossing', 3)]
+dem (768, 768) 57.0 357.0 101.67494201660156
+{'source': 'AWS Open Data Terrain Tiles (terrarium), NASA SRTM 1-arcsec over India', 'source_url': 'https://registry.opendata.aws/terrain-tiles/', 'zoom': 13, 'tile_x0': 5908, 'tile_y0': 3731, 'nx': 3, 'ny': 3, 'mosaic_north': 15.834535741221558, 'mosaic_west': 79.62890625, 'mosaic_south': 15.707662769583509, 'mosaic_east': 79.7607421875, 'anchor': {'lat': 15.7694505, 'lon': 79.6776541}, 'request_bbox': {'south': 15.722738318900467, 'west': 79.62911505655711, 'north': 15.816162681099533, 'east': 79.72619314344288}, 'fetched_at': '2026-10-02T18:34:19Z', 'units': 'metres above sea level', 'note': 'row 0 is the NORTH edge; column 0 is the WEST edge'}
