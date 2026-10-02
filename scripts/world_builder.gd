@@ -1106,16 +1106,16 @@ static func _sample_polyline(points: PackedVector2Array, distance: float) -> Dic
 
 static func _cell_key(x: float, y: float) -> int:
 	# Pack a 4 m cell into a single int so the Dictionary lookup stays cheap.
-	return int(floor(x / CELL)) * 100000 + int(floor(y / CELL))
+	return int(floorf(x / CELL)) * 100000 + int(floorf(y / CELL))
 
 
 ## Marks exactly the cells the rectangle covers - no extra ring, or plots lose a metre
 ## of frontage on every side and the streets end up with gaps.
 func _mark_rect(target: Dictionary, rect: Rect2) -> void:
-	var cx := floor(rect.position.x / CELL)
-	var cx_end := floor(rect.end.x / CELL)
-	var cy_start := floor(rect.position.y / CELL)
-	var cy_end := floor(rect.end.y / CELL)
+	var cx := floorf(rect.position.x / CELL)
+	var cx_end := floorf(rect.end.x / CELL)
+	var cy_start := floorf(rect.position.y / CELL)
+	var cy_end := floorf(rect.end.y / CELL)
 	while cx <= cx_end:
 		var cy := cy_start
 		while cy <= cy_end:
@@ -1125,10 +1125,10 @@ func _mark_rect(target: Dictionary, rect: Rect2) -> void:
 
 
 func _rect_hits(target: Dictionary, rect: Rect2) -> bool:
-	var cx := floor(rect.position.x / CELL)
-	var cx_end := floor(rect.end.x / CELL)
-	var cy_start := floor(rect.position.y / CELL)
-	var cy_end := floor(rect.end.y / CELL)
+	var cx := floorf(rect.position.x / CELL)
+	var cx_end := floorf(rect.end.x / CELL)
+	var cy_start := floorf(rect.position.y / CELL)
+	var cy_end := floorf(rect.end.y / CELL)
 	while cx <= cx_end:
 		var cy := cy_start
 		while cy <= cy_end:

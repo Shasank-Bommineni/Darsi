@@ -64,16 +64,21 @@ jobs:
         run: |
           echo "=== headless acceptance tests ===" >> ci.log
           set -o pipefail
-          godot --headless --script tests/headless_test.gd 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' | tee -a ci.log | tail -80
-          grep -q "0 failures" ci.log
+          godot --headless --script tests/headless_test.gd 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' > test.log
+          cat test.log >> ci.log
+          tail -80 test.log
+          grep -q "0 failures" test.log
 
       - name: Smoke-run the real game scene
         id: smoke
         continue-on-error: true
         run: |
           echo "=== smoke run ===" >> ci.log
-          timeout 180 godot --headless --quit-after 600 scenes/main.tscn 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' | tee -a ci.log | tail -40 || true
-          grep -q "Darsi built:" ci.log
+          timeout 180 godot --headless --quit-after 600 scenes/main.tscn 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' > smoke.log || true
+          cat smoke.log >> ci.log
+          tail -40 smoke.log
+          grep -q "Darsi built:" smoke.log
+          if grep -Eq "SCRIPT ERROR|Parse Error|Compilation failed" smoke.log; then echo "runtime script errors"; exit 1; fi
 
       - name: Render verification screenshots
         id: shots
