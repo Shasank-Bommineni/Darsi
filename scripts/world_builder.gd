@@ -1,236 +1,1058 @@
 class_name DarsiWorldBuilder
 extends Node3D
-## Builds a small, mobile-friendly town from the geographic manifest.
-## Roads and POIs are projected from WGS84 into metres; decorative geometry is procedural.
+## Builds the 3D town of Darsi directly from data/darsi_world.json.
+##
+## Every road centreline, building footprint, tank, canal and point of interest in this
+## scene is the real OpenStreetMap geometry of Darsi, Prakasam district, Andhra Pradesh
+## 523247, projected into a local metre frame (+x east, +y north -> Godot +x east, -z north).
+##
+## Only the *third dimension* is synthesised: OSM has no facades, so building heights come
+## from building:levels where tagged and from a type table otherwise, and plots on streets
+## that nobody has mapped yet are filled with procedural compound houses so the town is not
+## a field of empty asphalt. Those are tagged `procedural_infill` in the node metadata.
+##
+## Map data (c) OpenStreetMap contributors, ODbL 1.0.
 
-var anchor_lat := 15.7667
-var anchor_lon := 79.6833
-var road_materials: Dictionary = {}
-var landmarks_runtime: Array[Dictionary] = []
+signal world_built(stats: Dictionary)
+
+const ROAD_Y := 0.02
+const KERB_Y := 0.06
+const MARKING_Y := 0.035
+
+var world: Dictionary = {}
+var half_x := 2100.0
+var half_y := 2100.0
 var rng := RandomNumberGenerator.new()
 
-const EAST_METRES_PER_DEGREE := 111320.0
-const NORTH_METRES_PER_DEGREE := 110540.0
+var landmarks: Array[Dictionary] = []
+var road_graph: Array[Dictionary] = []      # drivable polylines in world space, for traffic + spawn
+var _materials: Dictionary = {}
+var _occupied: Array[Rect2] = []            # 2D footprints already used (buildings, water, roads)
+var _stats: Dictionary = {}
 
-func build(map_data: Dictionary) -> Array[Dictionary]:
-	rng.seed = 523247
-	anchor_lat = float(map_data.place.anchor.lat)
-	anchor_lon = float(map_data.place.anchor.lon)
-	_create_ground(map_data.world.extent_m)
-	for road in map_data.roads:
-		_build_road(road, map_data.world.road_widths_m)
-	for field in map_data.fields:
-		_build_field(field)
-	_build_town_decoration(map_data)
-	for landmark in map_data.landmarks:
-		var projected := latlon_to_world(float(landmark.lat), float(landmark.lon))
-		_build_landmark(landmark, projected)
-		landmarks_runtime.append({"id": landmark.id, "name": landmark.name, "kind": landmark.kind, "position": projected})
-	return landmarks_runtime
+# ------------------------------------------------------------------ palettes
+const WALL_COLOURS := [
+	Color("#eae3d2"), Color("#f2ead8"), Color("#e4dcc6"), Color("#dfd3bb"),
+	Color("#f0e2c8"), Color("#d9e4e0"), Color("#efd9c4"), Color("#e8e8df"),
+	Color("#dfe7ea"), Color("#f4ecdd"), Color("#e2cfc0"), Color("#cfd9cc"),
+]
+const TRIM_COLOURS := [
+	Color("#b8482f"), Color("#2f6b56"), Color("#2b4a74"), Color("#8c5a2b"),
+	Color("#6a3b6e"), Color("#a3812a"),
+]
+const SHUTTER_COLOURS := [
+	Color("#3c6ea5"), Color("#2f7a52"), Color("#a84a2f"), Color("#6b6f73"), Color("#8a6d2f"),
+]
 
-func latlon_to_world(lat: float, lon: float) -> Vector3:
-	var x := (lon - anchor_lon) * EAST_METRES_PER_DEGREE * cos(deg_to_rad(anchor_lat))
-	var z := -(lat - anchor_lat) * NORTH_METRES_PER_DEGREE
-	return Vector3(x, 0.0, z)
 
-func _material(color: Color, roughness := 0.9, emission := Color.BLACK) -> StandardMaterial3D:
-	var key := "%s_%s_%s" % [color.to_html(false), str(roughness), emission.to_html(false)]
-	if road_materials.has(key):
-		return road_materials[key]
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = roughness
+func _material(colour: Color, roughness := 0.9, metallic := 0.0, emission := Color.BLACK) -> StandardMaterial3D:
+	var key := "%s|%.2f|%.2f|%s" % [colour.to_html(), roughness, metallic, emission.to_html()]
+	if _materials.has(key):
+		return _materials[key]
+	var material := StandardMaterial3D.new()
+	material.albedo_color = colour
+	material.roughness = roughness
+	material.metallic = metallic
 	if emission != Color.BLACK:
-		mat.emission_enabled = true
-		mat.emission = emission
-		mat.emission_energy_multiplier = 1.4
-	road_materials[key] = mat
-	return mat
+		material.emission_enabled = true
+		material.emission = emission
+		material.emission_energy_multiplier = 1.5
+	_materials[key] = material
+	return material
 
-func _mesh_box(parent: Node3D, size: Vector3, position: Vector3, color: Color, collision := false, name := "Box") -> Node3D:
-	var node: Node3D
-	if collision:
-		var body := StaticBody3D.new()
-		body.name = name
-		var collider := CollisionShape3D.new()
-		var shape := BoxShape3D.new()
-		shape.size = size
-		collider.shape = shape
-		body.add_child(collider)
-		node = body
+
+# ------------------------------------------------------------------ entry point
+func build(data: Dictionary) -> Dictionary:
+	world = data
+	rng.seed = 523247
+	half_x = float(world.world.half_extent_x)
+	half_y = float(world.world.half_extent_y)
+
+	_build_ground()
+	_build_green_areas()
+	_build_water()
+	_build_roads()
+	_build_railways()
+	var osm_buildings := _build_osm_buildings()
+	var infill := _build_infill_buildings()
+	_build_pois()
+	_build_street_furniture()
+	_build_vegetation()
+	_build_boundary()
+
+	_stats.merge({
+		"roads": world.roads.size(),
+		"road_km": float(world.stats.road_length_m) / 1000.0,
+		"osm_buildings": osm_buildings,
+		"infill_buildings": infill,
+		"landmarks": landmarks.size(),
+		"drivable_segments": road_graph.size(),
+	}, true)
+	world_built.emit(_stats)
+	return _stats
+
+
+func get_stats() -> Dictionary:
+	return _stats
+
+
+## OSM metre space (+x east, +y north) -> Godot world space (x east, z south).
+static func plane_to_world(x: float, y: float) -> Vector3:
+	return Vector3(x, 0.0, -y)
+
+
+static func unpack(flat: Array) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var i := 0
+	while i + 1 < flat.size():
+		points.append(Vector2(float(flat[i]), float(flat[i + 1])))
+		i += 2
+	return points
+
+
+# ------------------------------------------------------------------ ground
+func _build_ground() -> void:
+	var ground := StaticBody3D.new()
+	ground.name = "Ground"
+	ground.collision_layer = 1
+	ground.collision_mask = 0
+	add_child(ground)
+
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(half_x * 2.4, 2.0, half_y * 2.4)
+	shape.shape = box
+	shape.position = Vector3(0, -1.0, 0)
+	ground.add_child(shape)
+
+	# Dry red-brown Rayalaseema/Prakasam soil with a few large tonal patches.
+	var plane := MeshInstance3D.new()
+	plane.name = "GroundPlane"
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(half_x * 2.4, half_y * 2.4)
+	mesh.subdivide_width = 8
+	mesh.subdivide_depth = 8
+	mesh.material = _material(Color("#9a8464"), 1.0)
+	plane.mesh = mesh
+	ground.add_child(plane)
+
+	var patch_colours := [Color("#8d7d5c"), Color("#a38a63"), Color("#94845f"), Color("#ab9570")]
+	for i in range(70):
+		var size := rng.randf_range(90.0, 320.0)
+		var px := rng.randf_range(-half_x, half_x)
+		var py := rng.randf_range(-half_y, half_y)
+		var patch := MeshInstance3D.new()
+		var patch_mesh := PlaneMesh.new()
+		patch_mesh.size = Vector2(size, size * rng.randf_range(0.6, 1.5))
+		patch_mesh.material = _material(patch_colours[i % patch_colours.size()], 1.0)
+		patch.mesh = patch_mesh
+		patch.position = plane_to_world(px, py) + Vector3(0, 0.005 + float(i) * 0.0002, 0)
+		patch.rotation.y = rng.randf_range(0.0, PI)
+		ground.add_child(patch)
+
+
+func _build_green_areas() -> void:
+	var parent := Node3D.new()
+	parent.name = "Farmland"
+	add_child(parent)
+	var colours := {
+		"farmland": Color("#8fa05a"),
+		"farmyard": Color("#a89770"),
+		"meadow": Color("#9bae68"),
+		"orchard": Color("#6f8c4c"),
+		"forest": Color("#55713f"),
+		"scrub": Color("#8a9460"),
+		"grass": Color("#93a862"),
+		"village_green": Color("#93a862"),
+		"cemetery": Color("#86936a"),
+		"recreation_ground": Color("#8fa86a"),
+	}
+	for area in world.get("green", []):
+		var points := unpack(area.outline)
+		if points.size() < 3:
+			continue
+		var colour: Color = colours.get(String(area.kind), Color("#8fa05a"))
+		var mesh_instance := _polygon_slab(points, 0.03, colour)
+		if mesh_instance:
+			mesh_instance.name = "Green_%s" % area.id
+			parent.add_child(mesh_instance)
+			_occupy(points, 0.0)
+
+
+func _build_water() -> void:
+	var parent := Node3D.new()
+	parent.name = "Water"
+	add_child(parent)
+	for body in world.get("water", []):
+		if body.has("outline"):
+			var points := unpack(body.outline)
+			if points.size() < 3:
+				continue
+			# Bund (earth embankment) around the tank, then the water surface sunk below it.
+			var bund := _polygon_outline_wall(points, 1.4, 5.0, Color("#8a7350"))
+			if bund:
+				bund.name = "Bund_%s" % body.id
+				parent.add_child(bund)
+			var surface := _polygon_slab(points, -0.35, Color("#3f7f9c"))
+			if surface:
+				surface.name = "Tank_%s" % body.id
+				var water_material := _material(Color("#3f7f9c"), 0.12, 0.25)
+				water_material.metallic_specular = 0.9
+				surface.material_override = water_material
+				parent.add_child(surface)
+			_occupy(points, 6.0)
+		elif body.has("line"):
+			var line := unpack(body.line)
+			if line.size() < 2:
+				continue
+			var width := float(body.get("width", 3.0))
+			var channel := _ribbon(line, width, -0.6, Color("#3f7f9c"))
+			if channel:
+				channel.name = "Canal_%s" % body.id
+				parent.add_child(channel)
+			var bank := _ribbon(line, width + 5.0, -0.05, Color("#8a7350"))
+			if bank:
+				bank.name = "CanalBank_%s" % body.id
+				bank.position.y = -0.04
+				parent.add_child(bank)
+
+
+# ------------------------------------------------------------------ roads
+func _build_roads() -> void:
+	var parent := Node3D.new()
+	parent.name = "Roads"
+	add_child(parent)
+
+	var surface_colours := {
+		"highway": Color("#3b3b3d"),
+		"arterial": Color("#403f40"),
+		"collector": Color("#454345"),
+		"neighbourhood": Color("#4a4744"),
+		"lane": Color("#514c45"),
+		"track": Color("#8a7450"),
+		"path": Color("#9b8763"),
+	}
+
+	for road in world.roads:
+		var points := unpack(road.points)
+		if points.size() < 2:
+			continue
+		var width := float(road.width)
+		var road_class := String(road["class"])
+		var colour: Color = surface_colours.get(road_class, Color("#464646"))
+
+		# Shoulder / verge first, then the carriageway on top.
+		if road_class in ["highway", "arterial", "collector"]:
+			var shoulder := _ribbon(points, width + 4.0, ROAD_Y - 0.01, Color("#7e6c4c"))
+			if shoulder:
+				shoulder.name = "Shoulder_%s" % road.id
+				parent.add_child(shoulder)
+
+		var surface := _ribbon(points, width, ROAD_Y, colour)
+		if surface:
+			surface.name = "Road_%s" % road.id
+			surface.set_meta("osm_id", road.osm_id)
+			surface.set_meta("name", road.name)
+			parent.add_child(surface)
+		_occupy_polyline(points, width * 0.5 + 1.0)
+
+		# Lane markings on the classified network only, exactly like the real roads here.
+		if road_class in ["highway", "arterial"]:
+			var centre := _dashed_line(points, 0.18, Color("#e8e4d0"), 4.0, 6.0)
+			if centre:
+				centre.name = "Centreline_%s" % road.id
+				parent.add_child(centre)
+			for side in [-1.0, 1.0]:
+				var edge := _offset_polyline(points, side * (width * 0.5 - 0.35))
+				var edge_mesh := _ribbon(edge, 0.14, MARKING_Y, Color("#e8e4d0"))
+				if edge_mesh:
+					edge_mesh.name = "EdgeLine_%s_%d" % [road.id, int(side)]
+					parent.add_child(edge_mesh)
+
+		if bool(road.get("drivable", false)):
+			var world_points: Array[Vector3] = []
+			for p in points:
+				world_points.append(plane_to_world(p.x, p.y))
+			road_graph.append({
+				"name": road.name,
+				"class": road_class,
+				"width": width,
+				"points": world_points,
+			})
+
+
+func _build_railways() -> void:
+	var rails: Array = world.get("railways", [])
+	if rails.is_empty():
+		return
+	var parent := Node3D.new()
+	parent.name = "Railways"
+	add_child(parent)
+	for rail in rails:
+		var points := unpack(rail.points)
+		if points.size() < 2:
+			continue
+		var ballast := _ribbon(points, 4.6, 0.08, Color("#6f6a62"))
+		if ballast:
+			parent.add_child(ballast)
+		for side in [-0.72, 0.72]:
+			var offset := _offset_polyline(points, side)
+			var steel := _ribbon(offset, 0.14, 0.20, Color("#4a4440"))
+			if steel:
+				parent.add_child(steel)
+
+
+# ------------------------------------------------------------------ buildings
+func _build_osm_buildings() -> int:
+	var parent := Node3D.new()
+	parent.name = "BuildingsOSM"
+	add_child(parent)
+	var built := 0
+	for building in world.buildings:
+		var outline := unpack(building.outline)
+		if outline.size() < 3:
+			continue
+		var height := float(building.height)
+		var node := _extruded_building(outline, height, String(building.get("type", "yes")), String(building.get("amenity", "")))
+		if node == null:
+			continue
+		node.name = "Building_%s" % building.id
+		node.set_meta("osm", true)
+		node.set_meta("osm_id", building.id)
+		parent.add_child(node)
+		_occupy(outline, 1.0)
+		built += 1
+		var bname := String(building.get("name", ""))
+		if bname != "":
+			var centre := Vector2(float(building.cx), float(building.cy))
+			landmarks.append({
+				"id": building.id,
+				"name": bname,
+				"kind": String(building.get("amenity", "building")),
+				"position": plane_to_world(centre.x, centre.y),
+			})
+	return built
+
+
+## Streets that OSM has mapped but nobody has traced buildings along still need a townscape.
+## Plots are laid out along the real street geometry with Indian small-town proportions:
+## 6-11 m frontage, 2-5 m setback, compound wall, flat RCC roof with a parapet and a tank.
+func _build_infill_buildings() -> int:
+	var parent := Node3D.new()
+	parent.name = "BuildingsInfill"
+	parent.set_meta("procedural_infill", true)
+	add_child(parent)
+
+	var built := 0
+	var budget := 900
+	var streets: Array = []
+	for road in world.roads:
+		if String(road["class"]) in ["neighbourhood", "lane", "collector", "arterial"]:
+			streets.append(road)
+	# Densest streets first so the core of town fills up before the outskirts.
+	streets.sort_custom(func(a, b): return _distance_to_centre(a) < _distance_to_centre(b))
+
+	for road in streets:
+		if built >= budget:
+			break
+		var points := unpack(road.points)
+		if points.size() < 2:
+			continue
+		var road_class := String(road["class"])
+		var half_width := float(road.width) * 0.5
+		var centre_distance := _distance_to_centre(road)
+		# Density falls off away from the town centre, like the real settlement pattern.
+		var density := clampf(1.25 - centre_distance / 1500.0, 0.08, 1.0)
+		var is_main := road_class in ["arterial", "collector"]
+
+		for side in [-1.0, 1.0]:
+			var travelled := rng.randf_range(0.0, 14.0)
+			var total := _polyline_length(points)
+			while travelled < total - 8.0 and built < budget:
+				var frontage := rng.randf_range(6.5, 11.5)
+				if rng.randf() > density:
+					travelled += frontage + rng.randf_range(2.0, 22.0)
+					continue
+				var sample := _sample_polyline(points, travelled + frontage * 0.5)
+				var position: Vector2 = sample.position
+				var tangent: Vector2 = sample.tangent
+				var normal := Vector2(-tangent.y, tangent.x) * side
+				var setback := rng.randf_range(2.5, 5.5)
+				var depth := rng.randf_range(7.0, 13.0)
+				var centre := position + normal * (half_width + setback + depth * 0.5)
+				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
+					travelled += frontage
+					continue
+				var footprint := Rect2(centre - Vector2(frontage, depth) * 0.5, Vector2(frontage, depth)).grow(1.5)
+				if _is_occupied(footprint):
+					travelled += frontage + 1.0
+					continue
+
+				var levels := 1
+				var roll := rng.randf()
+				if is_main:
+					levels = 2 if roll < 0.55 else (3 if roll < 0.85 else 1)
+				else:
+					levels = 1 if roll < 0.55 else (2 if roll < 0.92 else 3)
+				var height := 3.1 * float(levels) + rng.randf_range(-0.2, 0.3)
+				var angle := atan2(tangent.y, tangent.x)
+				var node := _plot_building(centre, Vector2(frontage, depth), angle, height, levels, is_main, normal)
+				node.name = "Infill_%d" % built
+				node.set_meta("procedural_infill", true)
+				parent.add_child(node)
+				_occupied.append(footprint)
+				built += 1
+				travelled += frontage + rng.randf_range(0.6, 4.0)
+	return built
+
+
+func _distance_to_centre(road: Dictionary) -> float:
+	var points: Array = road.points
+	if points.size() < 2:
+		return 9999.0
+	var mid := int(points.size() / 4) * 2
+	return Vector2(float(points[mid]), float(points[mid + 1])).length()
+
+
+## One walled plot: compound wall, gate, house block, parapet, water tank, sunshades.
+func _plot_building(centre: Vector2, size: Vector2, angle: float, height: float, levels: int, shopfront: bool, street_normal: Vector2) -> Node3D:
+	var root := Node3D.new()
+	root.position = plane_to_world(centre.x, centre.y)
+	root.rotation.y = -angle
+
+	var wall_colour: Color = WALL_COLOURS[rng.randi() % WALL_COLOURS.size()]
+	var trim_colour: Color = TRIM_COLOURS[rng.randi() % TRIM_COLOURS.size()]
+
+	var body_size := Vector3(size.x * rng.randf_range(0.72, 0.92), height, size.y * rng.randf_range(0.65, 0.85))
+	_add_box(root, body_size, Vector3(0.0, height * 0.5, 0.0), wall_colour, "House")
+	# Parapet wall around the flat roof.
+	_add_box(root, Vector3(body_size.x + 0.22, 0.55, 0.22), Vector3(0.0, height + 0.27, -body_size.z * 0.5), trim_colour, "ParapetN")
+	_add_box(root, Vector3(body_size.x + 0.22, 0.55, 0.22), Vector3(0.0, height + 0.27, body_size.z * 0.5), trim_colour, "ParapetS")
+	_add_box(root, Vector3(0.22, 0.55, body_size.z), Vector3(-body_size.x * 0.5, height + 0.27, 0.0), trim_colour, "ParapetW")
+	_add_box(root, Vector3(0.22, 0.55, body_size.z), Vector3(body_size.x * 0.5, height + 0.27, 0.0), trim_colour, "ParapetE")
+	# Black plastic overhead water tank - on practically every roof in town.
+	var tank := MeshInstance3D.new()
+	var tank_mesh := CylinderMesh.new()
+	tank_mesh.top_radius = 0.42
+	tank_mesh.bottom_radius = 0.48
+	tank_mesh.height = 0.9
+	tank_mesh.radial_segments = 10
+	tank_mesh.material = _material(Color("#1d1d1f"), 0.7)
+	tank.mesh = tank_mesh
+	tank.position = Vector3(body_size.x * 0.28, height + 0.95, body_size.z * 0.24)
+	root.add_child(tank)
+
+	# Windows and sunshades on the street face.
+	var face_z := -body_size.z * 0.5 - 0.06
+	for level in range(levels):
+		var y := 1.25 + float(level) * 3.1
+		if y + 0.8 > height:
+			break
+		for i in range(2):
+			var x := (float(i) - 0.5) * body_size.x * 0.46
+			_add_box(root, Vector3(0.95, 1.05, 0.08), Vector3(x, y, face_z), Color("#2d3a42"), "Window")
+			_add_box(root, Vector3(1.25, 0.10, 0.45), Vector3(x, y + 0.62, face_z - 0.18), trim_colour, "Sunshade")
+
+	if shopfront:
+		# Roller shutter and a painted signboard, the standard main-road ground floor.
+		var shutter: Color = SHUTTER_COLOURS[rng.randi() % SHUTTER_COLOURS.size()]
+		_add_box(root, Vector3(body_size.x * 0.74, 2.3, 0.12), Vector3(0.0, 1.15, face_z - 0.04), shutter, "Shutter")
+		_add_box(root, Vector3(body_size.x * 0.86, 0.75, 0.14), Vector3(0.0, 2.85, face_z - 0.10), trim_colour, "Signboard")
+		_add_box(root, Vector3(body_size.x * 0.88, 0.12, 1.5), Vector3(0.0, 3.35, face_z - 0.70), Color("#2f6b56"), "Awning")
 	else:
-		var mesh_instance := MeshInstance3D.new()
-		mesh_instance.name = name
-		node = mesh_instance
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mesh.material = _material(color)
-	if node is MeshInstance3D:
-		node.mesh = mesh
-	else:
-		var visual := MeshInstance3D.new()
-		visual.mesh = mesh
-		node.add_child(visual)
-	node.position = position
-	parent.add_child(node)
+		# Compound wall with a gate.
+		var wall_z := -size.y * 0.5
+		var gate_w := 2.6
+		var run := (size.x - gate_w) * 0.5
+		if run > 0.6:
+			for side in [-1.0, 1.0]:
+				_add_box(root, Vector3(run, 1.5, 0.18), Vector3(side * (gate_w + run) * 0.5, 0.75, wall_z), wall_colour.darkened(0.08), "CompoundWall")
+		_add_box(root, Vector3(gate_w, 1.3, 0.1), Vector3(0.0, 0.65, wall_z), trim_colour, "Gate")
+		_add_box(root, Vector3(0.9, 2.05, 0.1), Vector3(0.0, 1.02, face_z), Color("#4a3a28"), "Door")
+
+	# Collision: a single box is enough and keeps the physics broadphase cheap.
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var collider := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(body_size.x, height, body_size.z)
+	collider.shape = shape
+	collider.position = Vector3(0.0, height * 0.5, 0.0)
+	body.add_child(collider)
+	root.add_child(body)
+	return root
+
+
+## Extrudes a real OSM footprint into walls + roof with collision.
+func _extruded_building(outline: PackedVector2Array, height: float, type: String, amenity: String) -> Node3D:
+	var root := Node3D.new()
+	var centre := Vector2.ZERO
+	for p in outline:
+		centre += p
+	centre /= float(outline.size())
+	root.position = plane_to_world(centre.x, centre.y)
+
+	var local: PackedVector2Array = PackedVector2Array()
+	for p in outline:
+		local.append(p - centre)
+
+	var wall_colour: Color = WALL_COLOURS[abs(hash(type + str(outline.size()))) % WALL_COLOURS.size()]
+	if amenity in ["place_of_worship", "hindu", "temple"]:
+		wall_colour = Color("#f2e3c6")
+	elif type in ["school", "college", "university"]:
+		wall_colour = Color("#f0ddb8")
+	elif type in ["industrial", "warehouse"]:
+		wall_colour = Color("#c9ccc8")
+
+	var walls := _wall_mesh(local, height, wall_colour)
+	if walls == null:
+		return null
+	walls.name = "Walls"
+	root.add_child(walls)
+
+	var roof := _polygon_mesh(local, height, wall_colour.darkened(0.25))
+	if roof:
+		roof.name = "Roof"
+		root.add_child(roof)
+
+	# Parapet around the roof edge.
+	var parapet := _wall_mesh(local, 0.5, wall_colour.darkened(0.12))
+	if parapet:
+		parapet.name = "Parapet"
+		parapet.position.y = height
+		root.add_child(parapet)
+
+	# Gopuram-ish tower for temples so the skyline reads correctly.
+	if amenity in ["place_of_worship", "hindu", "temple"] or type == "temple":
+		var tower := MeshInstance3D.new()
+		var tower_mesh := CylinderMesh.new()
+		tower_mesh.top_radius = 0.6
+		tower_mesh.bottom_radius = 2.0
+		tower_mesh.height = 7.0
+		tower_mesh.radial_segments = 8
+		tower_mesh.material = _material(Color("#f6e7c5"), 0.8)
+		tower.mesh = tower_mesh
+		tower.position = Vector3(0.0, height + 3.5, 0.0)
+		root.add_child(tower)
+		var finial := MeshInstance3D.new()
+		var finial_mesh := SphereMesh.new()
+		finial_mesh.radius = 0.55
+		finial_mesh.height = 1.1
+		finial_mesh.material = _material(Color("#c9a227"), 0.25, 0.8)
+		finial.mesh = finial_mesh
+		finial.position = Vector3(0.0, height + 7.4, 0.0)
+		root.add_child(finial)
+
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var collider := CollisionShape3D.new()
+	var shape := ConvexPolygonShape3D.new()
+	var hull := PackedVector3Array()
+	for p in local:
+		hull.append(Vector3(p.x, 0.0, -p.y))
+		hull.append(Vector3(p.x, height, -p.y))
+	shape.points = hull
+	collider.shape = shape
+	body.add_child(collider)
+	root.add_child(body)
+	return root
+
+
+# ------------------------------------------------------------------ POIs
+func _build_pois() -> void:
+	var parent := Node3D.new()
+	parent.name = "PointsOfInterest"
+	add_child(parent)
+
+	var icon_colours := {
+		"fuel": Color("#d94f3d"), "hospital": Color("#ffffff"), "clinic": Color("#ffffff"),
+		"school": Color("#f0b429"), "college": Color("#f0b429"), "police": Color("#2b4a74"),
+		"bus_station": Color("#2f6b56"), "theatre": Color("#8e44ad"), "place_of_worship": Color("#f2c14e"),
+		"town": Color("#e8e4d0"), "village": Color("#e8e4d0"), "tractor": Color("#4b7f2f"),
+	}
+
+	for poi in world.pois:
+		var kind := String(poi.kind)
+		var pos := plane_to_world(float(poi.x), float(poi.y))
+		landmarks.append({"id": poi.id, "name": String(poi.name), "kind": kind, "position": pos})
+		if kind in ["town", "village", "suburb", "hamlet"]:
+			continue  # place labels have no physical object
+
+		var marker := Node3D.new()
+		marker.name = "POI_%s" % poi.id
+		marker.position = pos
+		parent.add_child(marker)
+
+		match kind:
+			"fuel":
+				_build_fuel_station(marker)
+			"bus_station":
+				_build_bus_station(marker)
+			"place_of_worship":
+				_build_temple(marker)
+			_:
+				var colour: Color = icon_colours.get(kind, Color("#cfcfcf"))
+				# A signboard on two posts: the universal small-town shop/clinic board.
+				_add_box(marker, Vector3(0.12, 2.6, 0.12), Vector3(-1.4, 1.3, 0.0), Color("#6d665c"), "Post")
+				_add_box(marker, Vector3(0.12, 2.6, 0.12), Vector3(1.4, 1.3, 0.0), Color("#6d665c"), "Post")
+				_add_box(marker, Vector3(3.2, 1.0, 0.12), Vector3(0.0, 2.7, 0.0), colour, "Board")
+
+		var label := Label3D.new()
+		label.text = String(poi.name)
+		label.position = Vector3(0.0, 4.0, 0.0)
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.font_size = 48
+		label.pixel_size = 0.012
+		label.outline_size = 14
+		label.modulate = Color(1, 1, 1)
+		label.outline_modulate = Color(0, 0, 0, 0.85)
+		label.no_depth_test = false
+		label.visibility_range_end = 160.0
+		marker.add_child(label)
+
+
+func _build_fuel_station(parent: Node3D) -> void:
+	_add_box(parent, Vector3(16.0, 0.12, 11.0), Vector3(0, 0.08, 0), Color("#b9b4ab"), "Forecourt")
+	for i in range(2):
+		var x := -3.0 + float(i) * 6.0
+		_add_box(parent, Vector3(1.1, 1.9, 0.8), Vector3(x, 0.95, 0), Color("#d94f3d"), "Pump")
+		_add_box(parent, Vector3(0.9, 0.5, 0.6), Vector3(x, 2.1, 0), Color("#f2efe6"), "PumpHead")
+	for sx in [-1.0, 1.0]:
+		for sz in [-1.0, 1.0]:
+			_add_box(parent, Vector3(0.35, 5.0, 0.35), Vector3(sx * 6.0, 2.5, sz * 3.6), Color("#8e8880"), "Column")
+	_add_box(parent, Vector3(14.0, 0.5, 9.0), Vector3(0, 5.2, 0), Color("#e7e3d8"), "Canopy")
+	_add_box(parent, Vector3(14.2, 0.9, 0.2), Vector3(0, 4.7, -4.5), Color("#d94f3d"), "CanopyFascia")
+
+
+func _build_bus_station(parent: Node3D) -> void:
+	_add_box(parent, Vector3(34.0, 0.15, 20.0), Vector3(0, 0.08, 0), Color("#a9a49b"), "Apron")
+	_add_box(parent, Vector3(26.0, 4.0, 7.0), Vector3(0, 2.0, 6.0), Color("#efe4cc"), "Terminal")
+	_add_box(parent, Vector3(27.0, 0.4, 8.0), Vector3(0, 4.2, 6.0), Color("#8d6a4a"), "TerminalRoof")
+	for i in range(4):
+		_add_box(parent, Vector3(0.3, 3.2, 0.3), Vector3(-9.0 + float(i) * 6.0, 1.6, -4.0), Color("#7d776e"), "ShelterPost")
+	_add_box(parent, Vector3(24.0, 0.25, 4.0), Vector3(0, 3.3, -4.0), Color("#2f6b56"), "ShelterRoof")
+	_add_box(parent, Vector3(5.0, 1.0, 0.2), Vector3(0, 5.0, 2.6), Color("#2f6b56"), "StationBoard")
+
+
+func _build_temple(parent: Node3D) -> void:
+	_add_box(parent, Vector3(9.0, 4.0, 11.0), Vector3(0, 2.0, 0), Color("#f4e6c8"), "Mandapam")
+	var vimana := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.7
+	mesh.bottom_radius = 2.6
+	mesh.height = 8.0
+	mesh.radial_segments = 8
+	mesh.material = _material(Color("#f0dcae"), 0.85)
+	vimana.mesh = mesh
+	vimana.position = Vector3(0, 8.0, 0)
+	parent.add_child(vimana)
+	_add_box(parent, Vector3(0.5, 7.0, 0.5), Vector3(-5.5, 3.5, -6.0), Color("#c0392b"), "Flagstaff")
+
+
+# ------------------------------------------------------------------ furniture + planting
+func _build_street_furniture() -> void:
+	var parent := Node3D.new()
+	parent.name = "StreetFurniture"
+	add_child(parent)
+
+	var pole_mesh := CylinderMesh.new()
+	pole_mesh.top_radius = 0.11
+	pole_mesh.bottom_radius = 0.16
+	pole_mesh.height = 8.5
+	pole_mesh.radial_segments = 6
+	pole_mesh.material = _material(Color("#9a958c"), 0.9)
+
+	var poles := MultiMeshInstance3D.new()
+	poles.name = "ElectricPoles"
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = pole_mesh
+
+	var transforms: Array[Transform3D] = []
+	var lamps: Array[Vector3] = []
+	for road in world.roads:
+		var road_class := String(road["class"])
+		if road_class in ["path", "track"]:
+			continue
+		var points := unpack(road.points)
+		if points.size() < 2:
+			continue
+		var spacing := 38.0 if road_class in ["highway", "arterial"] else 46.0
+		var total := _polyline_length(points)
+		var travelled := spacing * 0.5
+		var side := 1.0
+		while travelled < total:
+			var sample := _sample_polyline(points, travelled)
+			var normal := Vector2(-sample.tangent.y, sample.tangent.x) * side
+			var p: Vector2 = sample.position + normal * (float(road.width) * 0.5 + 1.6)
+			if abs(p.x) < half_x and abs(p.y) < half_y:
+				var t := Transform3D(Basis(), plane_to_world(p.x, p.y) + Vector3(0, 4.25, 0))
+				transforms.append(t)
+				if road_class in ["highway", "arterial", "collector"]:
+					lamps.append(plane_to_world(p.x, p.y) + Vector3(0, 8.3, 0))
+			travelled += spacing
+			side = -side
+
+	multimesh.instance_count = transforms.size()
+	for i in range(transforms.size()):
+		multimesh.set_instance_transform(i, transforms[i])
+	poles.multimesh = multimesh
+	parent.add_child(poles)
+
+	# Lamp heads (visual only - real lights would be far too expensive at this count).
+	var lamp_mesh := BoxMesh.new()
+	lamp_mesh.size = Vector3(0.9, 0.16, 0.3)
+	var lamp_material := _material(Color("#f6edc8"), 0.3, 0.0, Color("#ffd98a"))
+	lamp_mesh.material = lamp_material
+	var lamp_instances := MultiMeshInstance3D.new()
+	lamp_instances.name = "StreetLamps"
+	var lamp_multimesh := MultiMesh.new()
+	lamp_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	lamp_multimesh.mesh = lamp_mesh
+	lamp_multimesh.instance_count = lamps.size()
+	for i in range(lamps.size()):
+		lamp_multimesh.set_instance_transform(i, Transform3D(Basis(), lamps[i]))
+	lamp_instances.multimesh = lamp_multimesh
+	parent.add_child(lamp_instances)
+	_stats["street_poles"] = transforms.size()
+
+
+func _build_vegetation() -> void:
+	var parent := Node3D.new()
+	parent.name = "Vegetation"
+	add_child(parent)
+
+	# Neem/banyan style canopy trees along streets, palms scattered in the fields.
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.16
+	trunk_mesh.bottom_radius = 0.24
+	trunk_mesh.height = 3.2
+	trunk_mesh.radial_segments = 6
+	trunk_mesh.material = _material(Color("#5b4632"), 0.95)
+
+	var canopy_mesh := SphereMesh.new()
+	canopy_mesh.radius = 2.6
+	canopy_mesh.height = 4.0
+	canopy_mesh.radial_segments = 8
+	canopy_mesh.rings = 4
+	canopy_mesh.material = _material(Color("#3f6b35"), 0.95)
+
+	var trunks: Array[Transform3D] = []
+	var canopies: Array[Transform3D] = []
+
+	for road in world.roads:
+		if String(road["class"]) in ["path"]:
+			continue
+		var points := unpack(road.points)
+		if points.size() < 2:
+			continue
+		var total := _polyline_length(points)
+		var travelled := rng.randf_range(10.0, 40.0)
+		while travelled < total:
+			if rng.randf() < 0.45:
+				var sample := _sample_polyline(points, travelled)
+				var side := 1.0 if rng.randf() < 0.5 else -1.0
+				var normal := Vector2(-sample.tangent.y, sample.tangent.x) * side
+				var p: Vector2 = sample.position + normal * (float(road.width) * 0.5 + rng.randf_range(2.5, 5.0))
+				if abs(p.x) < half_x and abs(p.y) < half_y and not _is_occupied(Rect2(p - Vector2(2, 2), Vector2(4, 4))):
+					var base := plane_to_world(p.x, p.y)
+					var scale := rng.randf_range(0.8, 1.45)
+					trunks.append(Transform3D(Basis().scaled(Vector3(1, scale, 1)), base + Vector3(0, 1.6 * scale, 0)))
+					canopies.append(Transform3D(Basis().scaled(Vector3.ONE * scale), base + Vector3(0, 3.2 * scale + 1.2, 0)))
+			travelled += rng.randf_range(16.0, 42.0)
+
+	for i in range(1400):
+		var p := Vector2(rng.randf_range(-half_x, half_x), rng.randf_range(-half_y, half_y))
+		if _is_occupied(Rect2(p - Vector2(4, 4), Vector2(8, 8))):
+			continue
+		var base := plane_to_world(p.x, p.y)
+		var scale := rng.randf_range(0.6, 1.2)
+		trunks.append(Transform3D(Basis().scaled(Vector3(1, scale, 1)), base + Vector3(0, 1.6 * scale, 0)))
+		canopies.append(Transform3D(Basis().scaled(Vector3.ONE * scale), base + Vector3(0, 3.2 * scale + 1.2, 0)))
+
+	parent.add_child(_multimesh_node("TreeTrunks", trunk_mesh, trunks))
+	parent.add_child(_multimesh_node("TreeCanopies", canopy_mesh, canopies))
+	_stats["trees"] = trunks.size()
+
+
+func _multimesh_node(node_name: String, mesh: Mesh, transforms: Array[Transform3D]) -> MultiMeshInstance3D:
+	var node := MultiMeshInstance3D.new()
+	node.name = node_name
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = mesh
+	multimesh.instance_count = transforms.size()
+	for i in range(transforms.size()):
+		multimesh.set_instance_transform(i, transforms[i])
+	node.multimesh = multimesh
 	return node
 
-func _mesh_cylinder(parent: Node3D, radius: float, height: float, position: Vector3, color: Color, name := "Cylinder") -> MeshInstance3D:
+
+func _build_boundary() -> void:
+	# Invisible walls so the player cannot ride off the imported extract.
+	var body := StaticBody3D.new()
+	body.name = "WorldBounds"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body)
+	var thickness := 10.0
+	var height := 40.0
+	var sides := [
+		[Vector3(0, height * 0.5, -half_y - thickness), Vector3(half_x * 2 + thickness * 4, height, thickness)],
+		[Vector3(0, height * 0.5, half_y + thickness), Vector3(half_x * 2 + thickness * 4, height, thickness)],
+		[Vector3(-half_x - thickness, height * 0.5, 0), Vector3(thickness, height, half_y * 2 + thickness * 4)],
+		[Vector3(half_x + thickness, height * 0.5, 0), Vector3(thickness, height, half_y * 2 + thickness * 4)],
+	]
+	for side in sides:
+		var collider := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = side[1]
+		collider.shape = shape
+		collider.position = side[0]
+		body.add_child(collider)
+
+
+# ------------------------------------------------------------------ mesh helpers
+func _add_box(parent: Node3D, size: Vector3, position: Vector3, colour: Color, node_name := "Box") -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	mesh.material = _material(colour, 0.88)
 	var node := MeshInstance3D.new()
-	node.name = name
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = radius
-	mesh.bottom_radius = radius * 1.05
-	mesh.height = height
-	mesh.radial_segments = 8
-	mesh.material = _material(color)
+	node.name = node_name
 	node.mesh = mesh
 	node.position = position
 	parent.add_child(node)
 	return node
 
-func _create_ground(extent: Dictionary) -> void:
-	var ground := StaticBody3D.new()
-	ground.name = "DarsiGround"
-	var visual := MeshInstance3D.new()
-	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(float(extent.east - extent.west), float(extent.north - extent.south))
-	mesh.material = _material(Color("#aa9b68"), 1.0)
-	visual.mesh = mesh
-	visual.position = Vector3((extent.east + extent.west) * 0.5, -0.18, (extent.north + extent.south) * 0.5)
-	ground.add_child(visual)
-	var collider := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = Vector3(float(extent.east - extent.west), 0.35, float(extent.north - extent.south))
-	collider.shape = shape
-	collider.position = visual.position
-	ground.add_child(collider)
-	add_child(ground)
 
-func _build_road(road: Dictionary, widths: Dictionary) -> void:
-	var points: Array = road.points
-	var road_class: String = String(road["class"])
-	var road_width := float(widths.get(road_class, widths["neighbourhood"]))
-	var road_root := Node3D.new()
-	road_root.name = String(road.id)
-	add_child(road_root)
-	for i in range(points.size() - 1):
-		var a := latlon_to_world(float(points[i][0]), float(points[i][1]))
-		var b := latlon_to_world(float(points[i + 1][0]), float(points[i + 1][1]))
-		var delta := b - a
-		var length := Vector2(delta.x, delta.z).length()
-		if length < 1.0:
-			continue
-		var center := (a + b) * 0.5
-		var segment := _mesh_box(road_root, Vector3(road_width, 0.12, length + 0.8), center + Vector3(0, -0.07, 0), Color("#4e4c46"), true, "RoadSurface")
-		segment.rotation.y = atan2(delta.x, delta.z)
-		# Pale edge strips and a broken centre line keep the low-poly road legible on mobile.
-		var edge_color := Color("#c4b88a") if road_class == "highway" else Color("#8c8060")
-		for side in [-1.0, 1.0]:
-			var edge := _mesh_box(road_root, Vector3(0.10, 0.018, length), center + Vector3(0, 0.012, 0), edge_color, false, "RoadEdge")
-			edge.rotation.y = atan2(delta.x, delta.z)
-			edge.position += Vector3(cos(atan2(delta.x, delta.z)) * side * road_width * 0.43, 0, -sin(atan2(delta.x, delta.z)) * side * road_width * 0.43)
-		if road_class == "highway" or road_class == "arterial":
-			var dash_count := max(1, int(length / 12.0))
-			for dash in range(dash_count):
-				if dash % 2 == 0:
-					var t := (float(dash) + 0.5) / float(dash_count)
-					var mark_pos := a.lerp(b, t) + Vector3(0, 0.02, 0)
-					var marking := _mesh_box(road_root, Vector3(0.12, 0.02, min(4.0, length / float(dash_count) * 0.65)), mark_pos, Color("#e8d9a1"), false, "CentreMark")
-					marking.rotation.y = atan2(delta.x, delta.z)
+## Flat ribbon mesh following a polyline, used for roads, markings and canals.
+func _ribbon(points: PackedVector2Array, width: float, y: float, colour: Color) -> MeshInstance3D:
+	if points.size() < 2:
+		return null
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	var half := width * 0.5
+	var distance := 0.0
 
-func _build_field(field: Dictionary) -> void:
-	var center := latlon_to_world(float(field.center[0]), float(field.center[1]))
-	var size := Vector2(float(field.size_m[0]), float(field.size_m[1]))
-	var crop_colors := {"groundnut": Color("#a58e48"), "cotton": Color("#b6a054"), "millet": Color("#9f8842"), "red gram": Color("#98813c")}
-	var field_node := Node3D.new()
-	field_node.name = "Field_%s" % field.id
-	add_child(field_node)
-	_mesh_box(field_node, Vector3(size.x, 0.04, size.y), center + Vector3(0, -0.05, 0), crop_colors.get(field.crop, Color("#a28c4c")), false, "Field")
-	var rows := int(size.x / 18.0)
-	for i in range(rows):
-		var x := -size.x * 0.5 + 9.0 + i * 18.0
-		var row := _mesh_box(field_node, Vector3(0.18, 0.09, size.y - 14.0), center + Vector3(x, 0.03, 0), Color("#776a37"), false, "CropRow")
-		row.rotation.y = deg_to_rad(2.0 if i % 2 == 0 else -2.0)
-
-func _build_town_decoration(map_data: Dictionary) -> void:
-	# The starter world intentionally uses instanced-looking simple meshes rather than large textures.
-	# A deterministic seed makes map regeneration and bug reports reproducible.
-	for i in range(46):
-		var angle := rng.randf_range(0.0, TAU)
-		var radius := rng.randf_range(220.0, 1180.0)
-		var position := Vector3(cos(angle) * radius, 0, sin(angle) * radius * 0.78)
-		if i < 28:
-			_build_house(position, i)
+	for i in range(points.size()):
+		var tangent: Vector2
+		if i == 0:
+			tangent = (points[1] - points[0]).normalized()
+		elif i == points.size() - 1:
+			tangent = (points[i] - points[i - 1]).normalized()
 		else:
-			_build_tree(position, 0.8 + rng.randf() * 0.6)
-	for i in range(22):
-		var x := -900.0 + i * 86.0
-		_build_power_pole(Vector3(x, 0, -680.0 + sin(i * 0.7) * 120.0), i)
+			tangent = ((points[i + 1] - points[i]) .normalized() + (points[i] - points[i - 1]).normalized()).normalized()
+		if tangent.length() < 0.001:
+			tangent = Vector2(1, 0)
+		var normal := Vector2(-tangent.y, tangent.x)
+		if i > 0:
+			distance += points[i].distance_to(points[i - 1])
+		var left := points[i] + normal * half
+		var right := points[i] - normal * half
+		vertices.append(plane_to_world(left.x, left.y) + Vector3(0, y, 0))
+		vertices.append(plane_to_world(right.x, right.y) + Vector3(0, y, 0))
+		normals.append(Vector3.UP)
+		normals.append(Vector3.UP)
+		uvs.append(Vector2(0.0, distance / max(width, 0.5)))
+		uvs.append(Vector2(1.0, distance / max(width, 0.5)))
 
-func _build_house(position: Vector3, index: int) -> void:
-	var house := Node3D.new()
-	house.name = "Home_%02d" % index
-	add_child(house)
-	var width := rng.randf_range(8.0, 15.0)
-	var depth := rng.randf_range(7.0, 13.0)
-	var height := rng.randf_range(3.3, 6.0)
-	var walls := [Color("#d6b58a"), Color("#c89c75"), Color("#e0caa2"), Color("#b7c0a0")][index % 4]
-	_mesh_box(house, Vector3(width, height, depth), position + Vector3(0, height * 0.5, 0), walls, false, "House")
-	var roof := _mesh_box(house, Vector3(width + 0.6, 0.45, depth + 0.6), position + Vector3(0, height + 0.22, 0), Color("#8d5542"), false, "Roof")
-	roof.rotation.y = deg_to_rad((index % 3 - 1) * 5.0)
-	_mesh_box(house, Vector3(1.1, 1.8, 0.08), position + Vector3(0, 1.25, -depth * 0.51), Color("#35575a"), false, "Door")
-	for side in [-1.0, 1.0]:
-		_mesh_box(house, Vector3(1.25, 0.85, 0.08), position + Vector3(side * width * 0.28, 2.0, -depth * 0.51), Color("#e8d3a7"), false, "Window")
+	for i in range(points.size() - 1):
+		var base := i * 2
+		indices.append_array([base, base + 2, base + 1, base + 1, base + 2, base + 3])
 
-func _build_tree(position: Vector3, scale: float) -> void:
-	var tree := Node3D.new()
-	tree.name = "NeemTree"
-	add_child(tree)
-	_mesh_cylinder(tree, 0.35 * scale, 4.0 * scale, position + Vector3(0, 2.0 * scale, 0), Color("#624632"), "Trunk")
-	var crown := _mesh_cylinder(tree, 2.5 * scale, 3.6 * scale, position + Vector3(0, 5.0 * scale, 0), Color("#416b45"), "Canopy")
-	crown.scale = Vector3(1.0, 1.0, 0.85)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = _material(colour, 0.95)
+	return node
 
-func _build_power_pole(position: Vector3, index: int) -> void:
-	var pole := Node3D.new()
-	pole.name = "PowerPole_%02d" % index
-	add_child(pole)
-	_mesh_cylinder(pole, 0.11, 7.5, position + Vector3(0, 3.75, 0), Color("#71695d"), "Pole")
-	_mesh_box(pole, Vector3(3.1, 0.12, 0.12), position + Vector3(0, 6.6, 0), Color("#4c4a45"), false, "Crossbar")
-	for side in [-1.0, 0.0, 1.0]:
-		_mesh_cylinder(pole, 0.07, 0.22, position + Vector3(side * 1.0, 6.8, 0), Color("#2f3331"), "Insulator")
-	# A long cable is represented by slim segments so it remains inexpensive.
-	if index > 0:
-		var cable := _mesh_box(pole, Vector3(0.035, 0.035, 86.0), position + Vector3(-43.0, 6.75, 0), Color("#252b29"), false, "Wire")
-		cable.rotation.y = deg_to_rad(2.0)
 
-func _build_landmark(landmark: Dictionary, position: Vector3) -> void:
+func _dashed_line(points: PackedVector2Array, width: float, colour: Color, dash: float, gap: float) -> Node3D:
+	var total := _polyline_length(points)
+	if total < dash * 2.0:
+		return null
 	var root := Node3D.new()
-	root.name = "Landmark_%s" % landmark.id
-	add_child(root)
-	var kind := String(landmark.kind)
-	if kind == "temple":
-		_mesh_box(root, Vector3(15, 4.5, 12), position + Vector3(0, 2.25, 0), Color("#d99858"), true, "Temple")
-		_mesh_cylinder(root, 2.2, 8.0, position + Vector3(0, 8.0, 0), Color("#cf7544"), "TempleTower")
-	elif kind == "school":
-		_mesh_box(root, Vector3(24, 5.0, 13), position + Vector3(0, 2.5, 0), Color("#d7c38c"), true, "School")
-		_mesh_box(root, Vector3(18, 1.2, 0.15), position + Vector3(0, 5.25, -6.6), Color("#335f62"), false, "SchoolSign")
-	elif kind == "fuel":
-		_mesh_box(root, Vector3(22, 0.15, 18), position + Vector3(0, 0.03, 0), Color("#77726a"), true, "FuelYard")
-		_mesh_box(root, Vector3(16, 0.25, 11), position + Vector3(0, 4.4, 0), Color("#e9d7ac"), false, "FuelCanopy")
-		for x in [-5.0, 0.0, 5.0]:
-			_mesh_cylinder(root, 0.7, 3.6, position + Vector3(x, 2.1, 0), Color("#d65b45"), "Pump")
-	elif kind == "bus_station":
-		_mesh_box(root, Vector3(27, 3.5, 11), position + Vector3(0, 1.75, 0), Color("#c98e62"), true, "BusStation")
-		_mesh_box(root, Vector3(31, 0.2, 15), position + Vector3(0, 4.0, 0), Color("#567276"), false, "BusRoof")
-	elif kind == "park":
-		_mesh_box(root, Vector3(34, 0.08, 26), position + Vector3(0, 0.02, 0), Color("#6f9b62"), true, "Park")
-		for i in range(5):
-			_build_tree_at(root, position + Vector3(-12 + i * 6, 0, -9 if i % 2 == 0 else 9), 0.8)
-	else:
-		_mesh_box(root, Vector3(16, 3.2, 12), position + Vector3(0, 1.6, 0), Color("#c99670"), true, "Shop")
-		_mesh_box(root, Vector3(12, 1.0, 0.14), position + Vector3(0, 3.5, -6.1), Color("#e4bb68"), false, "ShopSign")
+	var travelled := 0.0
+	while travelled + dash < total:
+		var a := _sample_polyline(points, travelled)
+		var b := _sample_polyline(points, travelled + dash)
+		var segment := PackedVector2Array([a.position, b.position])
+		var mesh := _ribbon(segment, width, MARKING_Y, colour)
+		if mesh:
+			root.add_child(mesh)
+		travelled += dash + gap
+	return root
 
-func _build_tree_at(parent: Node3D, position: Vector3, scale: float) -> void:
-	_mesh_cylinder(parent, 0.28 * scale, 3.0 * scale, position + Vector3(0, 1.5 * scale, 0), Color("#624632"), "TreeTrunk")
-	_mesh_cylinder(parent, 1.9 * scale, 3.0 * scale, position + Vector3(0, 4.0 * scale, 0), Color("#416b45"), "TreeCrown")
+
+func _offset_polyline(points: PackedVector2Array, offset: float) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	for i in range(points.size()):
+		var tangent: Vector2
+		if i == 0:
+			tangent = (points[1] - points[0]).normalized()
+		elif i == points.size() - 1:
+			tangent = (points[i] - points[i - 1]).normalized()
+		else:
+			tangent = ((points[i + 1] - points[i]).normalized() + (points[i] - points[i - 1]).normalized()).normalized()
+		var normal := Vector2(-tangent.y, tangent.x)
+		result.append(points[i] + normal * offset)
+	return result
+
+
+func _polygon_mesh(points: PackedVector2Array, y: float, colour: Color) -> MeshInstance3D:
+	if points.size() < 3:
+		return null
+	var triangles := Geometry2D.triangulate_polygon(points)
+	if triangles.is_empty():
+		return null
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	for index in triangles:
+		var p := points[index]
+		vertices.append(Vector3(p.x, y, -p.y))
+		normals.append(Vector3.UP)
+		uvs.append(p * 0.08)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = _material(colour, 0.95)
+	return node
+
+
+func _polygon_slab(points: PackedVector2Array, y: float, colour: Color) -> MeshInstance3D:
+	return _polygon_mesh(points, y, colour)
+
+
+## Vertical wall band following a closed ring (used for building walls, parapets, bunds).
+func _wall_mesh(points: PackedVector2Array, height: float, colour: Color) -> MeshInstance3D:
+	if points.size() < 3:
+		return null
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var count := points.size()
+	for i in range(count):
+		var a := points[i]
+		var b := points[(i + 1) % count]
+		var edge := b - a
+		if edge.length() < 0.01:
+			continue
+		var normal := Vector3(edge.y, 0.0, edge.x).normalized()
+		var a0 := Vector3(a.x, 0.0, -a.y)
+		var b0 := Vector3(b.x, 0.0, -b.y)
+		var a1 := Vector3(a.x, height, -a.y)
+		var b1 := Vector3(b.x, height, -b.y)
+		var length := edge.length()
+		vertices.append_array([a0, b0, a1, a1, b0, b1])
+		for j in range(6):
+			normals.append(normal)
+		uvs.append_array([
+			Vector2(0, 0), Vector2(length * 0.25, 0), Vector2(0, height * 0.33),
+			Vector2(0, height * 0.33), Vector2(length * 0.25, 0), Vector2(length * 0.25, height * 0.33),
+		])
+	if vertices.is_empty():
+		return null
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var node := MeshInstance3D.new()
+	node.mesh = mesh
+	node.material_override = _material(colour, 0.92)
+	return node
+
+
+func _polygon_outline_wall(points: PackedVector2Array, height: float, thickness: float, colour: Color) -> MeshInstance3D:
+	var expanded := Geometry2D.offset_polygon(points, thickness)
+	if expanded.is_empty():
+		return null
+	return _wall_mesh(expanded[0], height, colour)
+
+
+# ------------------------------------------------------------------ polyline maths
+static func _polyline_length(points: PackedVector2Array) -> float:
+	var total := 0.0
+	for i in range(1, points.size()):
+		total += points[i].distance_to(points[i - 1])
+	return total
+
+
+static func _sample_polyline(points: PackedVector2Array, distance: float) -> Dictionary:
+	var travelled := 0.0
+	for i in range(1, points.size()):
+		var segment := points[i] - points[i - 1]
+		var length := segment.length()
+		if length < 0.0001:
+			continue
+		if travelled + length >= distance:
+			var t := (distance - travelled) / length
+			return {"position": points[i - 1].lerp(points[i], t), "tangent": segment / length}
+		travelled += length
+	var last := points.size() - 1
+	var tangent := (points[last] - points[max(0, last - 1)])
+	if tangent.length() < 0.0001:
+		tangent = Vector2(1, 0)
+	return {"position": points[last], "tangent": tangent.normalized()}
+
+
+func _occupy(points: PackedVector2Array, margin: float) -> void:
+	if points.is_empty():
+		return
+	var rect := Rect2(points[0], Vector2.ZERO)
+	for p in points:
+		rect = rect.expand(p)
+	_occupied.append(rect.grow(margin))
+
+
+func _occupy_polyline(points: PackedVector2Array, margin: float) -> void:
+	for i in range(1, points.size()):
+		var rect := Rect2(points[i - 1], Vector2.ZERO).expand(points[i])
+		_occupied.append(rect.grow(margin))
+
+
+func _is_occupied(rect: Rect2) -> bool:
+	for other in _occupied:
+		if other.intersects(rect):
+			return true
+	return false
+
+
+## Nearest point on the drivable network - used to place the player and traffic on tarmac.
+func nearest_road_point(from: Vector3) -> Dictionary:
+	var best := {"position": Vector3.ZERO, "direction": Vector3.FORWARD, "distance": INF, "name": ""}
+	for road in road_graph:
+		var points: Array = road.points
+		for i in range(1, points.size()):
+			var a: Vector3 = points[i - 1]
+			var b: Vector3 = points[i]
+			var closest := Geometry3D.get_closest_point_to_segment(from, a, b)
+			var distance := closest.distance_to(from)
+			if distance < best.distance:
+				best = {
+					"position": closest,
+					"direction": (b - a).normalized(),
+					"distance": distance,
+					"name": road.name,
+				}
+	return best

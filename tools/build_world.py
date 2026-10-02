@@ -129,16 +129,28 @@ def clip_polyline(points: list[tuple[float, float]], half_x: float, half_y: floa
     def inside(p: tuple[float, float]) -> bool:
         return abs(p[0]) <= half_x and abs(p[1]) <= half_y
 
+    def crossing(a: tuple[float, float], b: tuple[float, float]) -> tuple[float, float]:
+        """Point where the segment a->b meets the rectangle, so roads stop exactly at the edge."""
+        lo, hi = 0.0, 1.0
+        for _ in range(40):
+            mid = (lo + hi) * 0.5
+            p = (a[0] + (b[0] - a[0]) * mid, a[1] + (b[1] - a[1]) * mid)
+            if inside(p):
+                lo = mid
+            else:
+                hi = mid
+        return (a[0] + (b[0] - a[0]) * lo, a[1] + (b[1] - a[1]) * lo)
+
     runs: list[list[tuple[float, float]]] = []
     current: list[tuple[float, float]] = []
     for i, point in enumerate(points):
         if inside(point):
             if not current and i > 0:
-                current.append(points[i - 1])  # keep one outside point so roads reach the border
+                current.append(crossing(point, points[i - 1]))  # enter the window at the border
             current.append(point)
         else:
             if current:
-                current.append(point)
+                current.append(crossing(current[-1], point))  # leave at the border
                 runs.append(current)
                 current = []
     if current:

@@ -1,0 +1,82 @@
+name: Build and test the Godot project
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.3"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate the world manifest
+        run: python tests/test_world_manifest.py
+
+      - name: Install Godot ${{ env.GODOT_VERSION }} (headless)
+        run: |
+          set -e
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          godot --version
+
+      - name: Import the project
+        run: |
+          godot --headless --import --quit-after 400 2>&1 | tee import.log || true
+          test -d .godot/imported || test -d .godot
+
+      - name: Check every script for parse errors
+        run: |
+          set -e
+          godot --headless --check-only --script scripts/world_builder.gd
+          godot --headless --check-only --script scripts/motorcycle_mesh.gd
+          godot --headless --check-only --script scripts/motorcycle.gd
+          godot --headless --check-only --script scripts/minimap.gd
+          godot --headless --check-only --script scripts/traffic_vehicle.gd
+          godot --headless --check-only --script scripts/hud.gd
+          godot --headless --check-only --script scripts/main.gd
+          godot --headless --check-only --script tests/headless_test.gd
+
+      - name: Run the headless acceptance tests
+        run: |
+          set -o pipefail
+          godot --headless --script tests/headless_test.gd 2>&1 | tee test.log
+          grep -q "0 failures" test.log
+
+      - name: Smoke-run the real game scene for 15 seconds
+        run: |
+          set -o pipefail
+          timeout 120 godot --headless --quit-after 900 scenes/main.tscn 2>&1 | tee smoke.log || true
+          grep -q "Darsi built:" smoke.log
+          if grep -Eq "SCRIPT ERROR|Parse Error|Invalid call|Cannot call method" smoke.log; then
+            echo "runtime errors found in the smoke run"; exit 1
+          fi
+
+      - name: Export the Linux build
+        run: |
+          mkdir -p build/linux
+          godot --headless --export-release "Linux/X11" build/linux/darsi.x86_64 2>&1 | tee export.log || true
+          ls -la build/linux
+
+      - name: Upload the build and logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: darsi-build
+          path: |
+            build/
+            *.log
