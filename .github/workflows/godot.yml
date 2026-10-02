@@ -64,7 +64,7 @@ jobs:
         run: |
           echo "=== headless acceptance tests ===" >> ci.log
           set -o pipefail
-          godot --headless --script tests/headless_test.gd 2>&1 | tee -a ci.log | tail -60
+          godot --headless --script tests/headless_test.gd 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' | tee -a ci.log | tail -80
           grep -q "0 failures" ci.log
 
       - name: Smoke-run the real game scene
@@ -72,7 +72,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "=== smoke run ===" >> ci.log
-          timeout 180 godot --headless --quit-after 600 scenes/main.tscn 2>&1 | tail -60 | tee -a ci.log || true
+          timeout 180 godot --headless --quit-after 600 scenes/main.tscn 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' | tail -60 | tee -a ci.log || true
           grep -q "Darsi built:" ci.log
 
       - name: Export the Linux build
@@ -96,7 +96,7 @@ jobs:
             echo "parse: ${{ steps.parse.outcome }}  tests: ${{ steps.tests.outcome }}  smoke: ${{ steps.smoke.outcome }}  export: ${{ steps.export.outcome }}"
             echo
             echo '```'
-            tail -c 180000 ci.log
+            grep -v 'Parameter "m" is null' ci.log | grep -v 'mesh_storage.h' | tail -c 150000
             echo '```'
           } > .ci/last-run.md
           git config user.name "github-actions[bot]"
