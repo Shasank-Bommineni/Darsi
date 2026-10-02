@@ -1,7 +1,7 @@
 # Last CI run
 
-commit: 89222b1faedd365ed63cce215abbd8a2f115331f
-parse: failure  tests: success  smoke: failure  export: success
+commit: 511d2a23ff70698e1357353f8631586ed59b37d3
+parse: success  tests: success  smoke: success  export: success
 
 ```
 === Darsi world manifest validation ===
@@ -34,46 +34,8 @@ parse: failure  tests: success  smoke: failure  export: success
 
 === 26 checks, 0 failures ===
 4.3.stable.official.77dcf97d8
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://tests/headless_test.gd:-1)
-ERROR: Failed to load script "res://tests/headless_test.gd" with error "Parse error".
-   at: load (modules/gdscript/gdscript.cpp:2936)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://tools/capture.gd:-1)
-ERROR: Failed to load script "res://tools/capture.gd" with error "Parse error".
-   at: load (modules/gdscript/gdscript.cpp:2936)
+Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
+
 === script checks ===
 --- scripts/hud.gd
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
@@ -81,30 +43,6 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 --- scripts/main.gd
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://scripts/main.gd:-1)
-ERROR: Failed to load script "res://scripts/main.gd" with error "Compilation failed".
-   at: load (modules/gdscript/gdscript.cpp:2936)
 --- scripts/minimap.gd
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
@@ -120,83 +58,12 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 --- scripts/world_builder.gd
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-ERROR: Failed to load script "res://scripts/world_builder.gd" with error "Parse error".
-   at: load (modules/gdscript/gdscript.cpp:2936)
-CHECK FAILED: scripts/world_builder.gd
 --- tests/headless_test.gd
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://tests/headless_test.gd:-1)
-ERROR: Failed to load script "res://tests/headless_test.gd" with error "Compilation failed".
-   at: load (modules/gdscript/gdscript.cpp:2936)
 === headless acceptance tests ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://tests/headless_test.gd:-1)
-ERROR: Failed to load script "res://tests/headless_test.gd" with error "Compilation failed".
-   at: load (modules/gdscript/gdscript.cpp:2936)
 === Darsi headless acceptance tests ===
 
 [1] Geographic manifest
@@ -222,8 +89,17 @@ ERROR: Failed to load script "res://tests/headless_test.gd" with error "Compilat
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
-          at: _test_world_build (res://tests/headless_test.gd:93)
+  built in 2624 ms: { "fields": 420, "street_poles": 1496, "trees": 975, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1068, "landmarks": 27, "drivable_segments": 194 }
+  PASS  real OSM buildings extruded (91)
+  PASS  plots filled along the real streets (1068)
+  PASS  drivable road graph built (194 segments)
+  PASS  landmarks registered (27)
+  PASS  road geometry node exists
+  PASS  water geometry node exists
+  PASS  vegetation node exists
+  PASS  ground collider exists
+  PASS  road meshes instantiated (236 children)
+  PASS  town centre is within 120 m of a road (14.8 m)
 
 [3] Motorcycle simulation
   PASS  the motorcycle is a rigid body, not a kinematic placeholder
@@ -233,39 +109,35 @@ SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
   PASS  chassis collider exists
   PASS  both wheels exist as animated nodes
   PASS  the handlebars steer independently of the frame
-SCRIPT ERROR: Invalid call. Nonexistent function 'nearest_road_point' in base 'Nil'.
-          at: _test_motorcycle (res://tests/headless_test.gd:135)
+  spawn (-5.480209, 0.59, 13.783) -> settled (-5.480063, 0.532213, 13.78306), contacts front=true rear=true, up=(-0.00027, 1, -0.000107)
+  under the bike: /root/@Node3D@2/Ground at (-5.480063, 0, 13.78306) (normal (0, 1, 0))
+  PASS  the bike rests on its suspension (y = 0.53)
+  PASS  the bike stays upright at rest
+  speed after 6 s of throttle: 52 km/h, travelled 56.1 m
+  PASS  the engine actually accelerates the bike (52 km/h)
+  PASS  top speed is plausible for a 150cc commuter (52 km/h)
+  PASS  the gearbox shifted up (gear 3)
+  PASS  the odometer recorded the ride (56.1 m)
+  PASS  the bike moved across the world
+  PASS  the bike is still upright under power
+  PASS  fuel is being consumed (8.99 l)
+  entered the corner at 8.2 m/s, heading changed by 20.4 deg, peak lean 36.4 deg, exit 0.2 m/s
+  PASS  the bike reached cornering speed (8.2 m/s)
+  PASS  steering changes the heading (20.4 deg)
+  PASS  the bike leans into the corner (36.4 deg peak)
+  PASS  the bike did not fall over while cornering
+  PASS  the lean angle stays inside the tyre's edge (36.4 deg)
+  PASS  the bike is rolling before the brake test (10.8 m/s)
+  braking: 10.8 -> 0.0 m/s
+  PASS  the brakes stop the bike
+  PASS  ride modes cycle
+  PASS  refuelling fills the tank
 
-=== 27 checks, 0 failures ===
+=== 55 checks, 0 failures ===
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://scripts/main.gd:-1)
-ERROR: Failed to load script "res://scripts/main.gd" with error "Compilation failed".
-   at: load (modules/gdscript/gdscript.cpp:2936)
-SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
-          at: _ready (res://scripts/main.gd:45)
+Darsi built: { "fields": 420, "street_poles": 1496, "trees": 975, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1068, "landmarks": 27, "drivable_segments": 194 }
 === screenshots ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
@@ -286,52 +158,34 @@ ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
 WARNING: All audio drivers failed, falling back to the dummy driver.
      at: initialize (servers/audio_server.cpp:247)
 
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1115)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1116)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1117)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1118)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1120)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1128)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1129)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1130)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1131)
-SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
-          at: GDScript::reload (res://scripts/world_builder.gd:1133)
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://tools/capture.gd:-1)
-ERROR: Failed to load script "res://tools/capture.gd" with error "Compilation failed".
-   at: load (modules/gdscript/gdscript.cpp:2936)
-SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
-          at: _ready (res://tools/capture.gd:50)
-total 1284
-drwxr-xr-x 2 runner runner   4096 Oct  2 17:37 .
-drwxr-xr-x 3 runner runner   4096 Oct  2 17:37 ..
--rw-r--r-- 1 runner runner 182838 Oct  2 17:37 01_town_from_above.png
--rw-rw-rw- 1 runner runner    805 Oct  2 17:37 01_town_from_above.png.import
--rw-r--r-- 1 runner runner 108246 Oct  2 17:37 02_central_junction.png
--rw-rw-rw- 1 runner runner    808 Oct  2 17:37 02_central_junction.png.import
--rw-r--r-- 1 runner runner 240896 Oct  2 17:37 03_rider_view.png
--rw-rw-rw- 1 runner runner    789 Oct  2 17:37 03_rider_view.png.import
--rw-r--r-- 1 runner runner 252401 Oct  2 17:37 04_motorcycle_detail.png
--rw-rw-rw- 1 runner runner    810 Oct  2 17:37 04_motorcycle_detail.png.import
--rw-r--r-- 1 runner runner 232613 Oct  2 17:37 05_main_road.png
--rw-rw-rw- 1 runner runner    787 Oct  2 17:37 05_main_road.png.import
--rw-r--r-- 1 runner runner 257241 Oct  2 17:37 06_street_level.png
--rw-rw-rw- 1 runner runner    796 Oct  2 17:37 06_street_level.png.import
+stats: { "fields": 420, "street_poles": 1496, "trees": 975, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1068, "landmarks": 27, "drivable_segments": 194 }
+capturing 6 shots
+saved res://docs/screenshots/01_town_from_above.png (ok)
+saved res://docs/screenshots/02_central_junction.png (ok)
+saved res://docs/screenshots/03_rider_view.png (ok)
+saved res://docs/screenshots/04_motorcycle_detail.png (ok)
+saved res://docs/screenshots/05_main_road.png (ok)
+saved res://docs/screenshots/06_street_level.png (ok)
+total 1332
+drwxr-xr-x 2 runner runner   4096 Oct  2 17:42 .
+drwxr-xr-x 3 runner runner   4096 Oct  2 17:42 ..
+-rw-r--r-- 1 runner runner 221631 Oct  2 17:43 01_town_from_above.png
+-rw-rw-rw- 1 runner runner    804 Oct  2 17:42 01_town_from_above.png.import
+-rw-r--r-- 1 runner runner 128450 Oct  2 17:44 02_central_junction.png
+-rw-rw-rw- 1 runner runner    808 Oct  2 17:42 02_central_junction.png.import
+-rw-r--r-- 1 runner runner 234007 Oct  2 17:44 03_rider_view.png
+-rw-rw-rw- 1 runner runner    790 Oct  2 17:42 03_rider_view.png.import
+-rw-r--r-- 1 runner runner 227430 Oct  2 17:44 04_motorcycle_detail.png
+-rw-rw-rw- 1 runner runner    811 Oct  2 17:42 04_motorcycle_detail.png.import
+-rw-r--r-- 1 runner runner 247450 Oct  2 17:44 05_main_road.png
+-rw-rw-rw- 1 runner runner    787 Oct  2 17:42 05_main_road.png.import
+-rw-r--r-- 1 runner runner 257280 Oct  2 17:44 06_street_level.png
+-rw-rw-rw- 1 runner runner    795 Oct  2 17:42 06_street_level.png.import
 === export ===
-SCRIPT ERROR: Compile Error: 
-          at: GDScript::reload (res://scripts/main.gd:-1)
-ERROR: Failed to load script "res://scripts/main.gd" with error "Parse error".
-   at: load (modules/gdscript/gdscript.cpp:2936)
+	savepack: step 37: Storing File: res://docs/screenshots/06_street_level.png.import
+	savepack: step 42: Storing File: res://.godot/imported/darsi_map_preview.svg-46fd48b510fce2e0dd7676004c04fd7b.ctex
+	savepack: step 42: Storing File: res://docs/darsi_map_preview.svg.import
+	savepack: step 47: Storing File: res://.godot/exported/133200997/export-a637d77a8079708f17d7f985c5beb852-capture.scn
 	savepack: step 52: Storing File: res://.godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn
 	savepack: step 57: Storing File: res://scripts/hud.gdc
 	savepack: step 62: Storing File: res://scripts/main.gdc
@@ -358,9 +212,9 @@ ERROR: Failed to load script "res://scripts/main.gd" with error "Parse error".
 	savepack: step 97: Storing File: res://.godot/uid_cache.bin
 	savepack: step 97: Storing File: res://project.binary
 savepack: end
-total 65704
-drwxr-xr-x 2 runner runner     4096 Oct  2 17:37 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 17:37 ..
--rw-rw-rw- 1 runner runner  1194960 Oct  2 17:37 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 17:37 darsi.x86_64
+total 65680
+drwxr-xr-x 2 runner runner     4096 Oct  2 17:44 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 17:44 ..
+-rw-rw-rw- 1 runner runner  1168736 Oct  2 17:44 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 17:44 darsi.x86_64
 ```
