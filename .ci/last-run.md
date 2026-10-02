@@ -1,6 +1,6 @@
 # Last CI run
 
-commit: 161b851e91b8a76b8162cdbd2477d97309b4c30e
+commit: 72eac081efdf29bf078caf35827105e47fdfe762
 parse: success  tests: failure  smoke: success  export: success
 
 ```
@@ -89,7 +89,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 333 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+  built in 638 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
   PASS  plots filled along the real streets (509)
   PASS  drivable road graph built (194 segments)
@@ -121,20 +121,19 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  the bike moved across the world
   PASS  the bike is still upright under power
   PASS  fuel is being consumed (8.99 l)
-  heading changed by 23.9 deg, peak lean -50.9 deg
-  PASS  steering changes the heading (23.9 deg)
-  PASS  the bike leans into the corner (-50.9 deg)
+  heading changed by 12.0 deg, peak lean -16.3 deg
+  FAIL  steering changes the heading (12.0 deg)
+  PASS  the bike leans into the corner (-16.3 deg)
   PASS  the bike did not fall over while cornering
-  FAIL  the lean angle stays inside the tyre's edge (-50.9 deg)
-  FAIL  the bike is rolling before the brake test (0.0 m/s)
-  braking: 0.0 -> 0.0 m/s
+  PASS  the lean angle stays inside the tyre's edge (-16.3 deg)
+  PASS  the bike is rolling before the brake test (10.8 m/s)
+  braking: 10.8 -> 0.0 m/s
   PASS  the brakes stop the bike
   PASS  ride modes cycle
   PASS  refuelling fills the tank
 
-=== 54 checks, 2 failures ===
-  FAILED: the lean angle stays inside the tyre's edge (-50.9 deg)
-  FAILED: the bike is rolling before the brake test (0.0 m/s)
+=== 54 checks, 1 failures ===
+  FAILED: steering changes the heading (12.0 deg)
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
@@ -167,15 +166,21 @@ saved res://docs/screenshots/03_rider_view.png (ok)
 saved res://docs/screenshots/04_motorcycle_detail.png (ok)
 saved res://docs/screenshots/05_main_road.png (ok)
 saved res://docs/screenshots/06_street_level.png (ok)
-total 1064
-drwxr-xr-x 2 runner runner   4096 Oct  2 17:04 .
-drwxr-xr-x 3 runner runner   4096 Oct  2 17:04 ..
--rw-r--r-- 1 runner runner  98370 Oct  2 17:04 01_town_from_above.png
--rw-r--r-- 1 runner runner  58599 Oct  2 17:04 02_central_junction.png
--rw-r--r-- 1 runner runner 218429 Oct  2 17:04 03_rider_view.png
--rw-r--r-- 1 runner runner 267058 Oct  2 17:04 04_motorcycle_detail.png
--rw-r--r-- 1 runner runner 191815 Oct  2 17:04 05_main_road.png
--rw-r--r-- 1 runner runner 231782 Oct  2 17:04 06_street_level.png
+total 1252
+drwxr-xr-x 2 runner runner   4096 Oct  2 17:09 .
+drwxr-xr-x 3 runner runner   4096 Oct  2 17:09 ..
+-rw-r--r-- 1 runner runner 142818 Oct  2 17:10 01_town_from_above.png
+-rw-rw-rw- 1 runner runner    805 Oct  2 17:09 01_town_from_above.png.import
+-rw-r--r-- 1 runner runner 100673 Oct  2 17:10 02_central_junction.png
+-rw-rw-rw- 1 runner runner    808 Oct  2 17:09 02_central_junction.png.import
+-rw-r--r-- 1 runner runner 239235 Oct  2 17:10 03_rider_view.png
+-rw-rw-rw- 1 runner runner    790 Oct  2 17:09 03_rider_view.png.import
+-rw-r--r-- 1 runner runner 254512 Oct  2 17:10 04_motorcycle_detail.png
+-rw-rw-rw- 1 runner runner    810 Oct  2 17:09 04_motorcycle_detail.png.import
+-rw-r--r-- 1 runner runner 245384 Oct  2 17:10 05_main_road.png
+-rw-rw-rw- 1 runner runner    786 Oct  2 17:09 05_main_road.png.import
+-rw-r--r-- 1 runner runner 257691 Oct  2 17:10 06_street_level.png
+-rw-rw-rw- 1 runner runner    796 Oct  2 17:09 06_street_level.png.import
 === export ===
 	savepack: step 37: Storing File: res://docs/screenshots/06_street_level.png.import
 	savepack: step 42: Storing File: res://.godot/imported/darsi_map_preview.svg-46fd48b510fce2e0dd7676004c04fd7b.ctex
@@ -207,9 +212,9 @@ drwxr-xr-x 3 runner runner   4096 Oct  2 17:04 ..
 	savepack: step 97: Storing File: res://.godot/uid_cache.bin
 	savepack: step 97: Storing File: res://project.binary
 savepack: end
-total 65536
-drwxr-xr-x 2 runner runner     4096 Oct  2 17:04 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 17:04 ..
--rw-rw-rw- 1 runner runner  1021856 Oct  2 17:04 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 17:04 darsi.x86_64
+total 65668
+drwxr-xr-x 2 runner runner     4096 Oct  2 17:10 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 17:10 ..
+-rw-rw-rw- 1 runner runner  1159136 Oct  2 17:10 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 17:10 darsi.x86_64
 ```
