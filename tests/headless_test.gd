@@ -187,16 +187,16 @@ func _test_motorcycle(builder: DarsiWorldBuilder) -> void:
 	for i in range(180):
 		bike.set_controls(0.5, 0.0, 0.0, 1.0)
 		await physics_frame
-		leaned = minf(leaned, bike.get_lean_degrees())
+		leaned = maxf(leaned, absf(bike.get_lean_degrees()))
 	var heading_after := bike.get_heading_degrees()
 	var turned: float = absf(wrapf(heading_after - heading_before, -180.0, 180.0))
 	print("  entered the corner at %.1f m/s, heading changed by %.1f deg, peak lean %.1f deg, exit %.1f m/s"
 		% [entry_speed, turned, leaned, absf(bike.get_speed_mps())])
 	_check(entry_speed > 6.0, "the bike reached cornering speed (%.1f m/s)" % entry_speed)
 	_check(turned > 15.0, "steering changes the heading (%.1f deg)" % turned)
-	_check(absf(leaned) > 2.0, "the bike leans into the corner (%.1f deg)" % leaned)
+	_check(leaned > 2.0, "the bike leans into the corner (%.1f deg peak)" % leaned)
 	_check(bike.global_transform.basis.y.dot(Vector3.UP) > 0.6, "the bike did not fall over while cornering")
-	_check(absf(leaned) < 48.0, "the lean angle stays inside the tyre's edge (%.1f deg)" % leaned)
+	_check(leaned < 48.0, "the lean angle stays inside the tyre's edge (%.1f deg)" % leaned)
 
 	# Brakes: put the bike back on a clean stretch of road, get up to speed, then grab both.
 	var brake_start := builder.nearest_road_point(bike.global_position)

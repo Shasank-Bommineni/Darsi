@@ -454,13 +454,13 @@ func _build_infill_buildings() -> int:
 				var position: Vector2 = sample.position
 				var tangent: Vector2 = sample.tangent
 				var normal: Vector2 = Vector2(-tangent.y, tangent.x) * side
-				var setback := rng.randf_range(2.8, 5.5)
+				var setback := rng.randf_range(3.6, 6.0)
 				var depth := rng.randf_range(7.0, 13.0)
 				var centre: Vector2 = position + normal * (half_width + setback + depth * 0.5)
 				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
 					travelled += frontage
 					continue
-				var footprint := Rect2(centre - Vector2(frontage, depth) * 0.5, Vector2(frontage, depth)).grow(0.8)
+				var footprint := Rect2(centre - Vector2(frontage, depth) * 0.5, Vector2(frontage, depth)).grow(0.4)
 				if _is_occupied(footprint):
 					travelled += frontage + 1.0
 					continue
