@@ -1,6 +1,6 @@
 # Last CI run
 
-commit: 41f758e9b61db955e725849e54160c9779747a81
+commit: 5539c71d4bd51674d595821cac9ebd8eb5d6c08b
 parse: success  tests: failure  smoke: success  export: success
 
 ```
@@ -89,7 +89,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 344 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+  built in 556 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
   PASS  plots filled along the real streets (509)
   PASS  drivable road graph built (194 segments)
@@ -109,6 +109,8 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  chassis collider exists
   PASS  both wheels exist as animated nodes
   PASS  the handlebars steer independently of the frame
+  spawn (-5.480209, 0.59, 13.783) -> settled (-5.56943, 1.107237, 13.92619), contacts front=false rear=false, up=(0.290304, -0.837132, -0.463609)
+  under the bike: /root/@Node3D@2/Ground at (-5.56943, 0, 13.92619) (normal (0, 1, 0))
   PASS  the bike rests on its suspension (y = 1.11)
   FAIL  the bike stays upright at rest
   speed after 6 s of throttle: 0 km/h, travelled 0.1 m
@@ -140,6 +142,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
 Darsi built: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
 === export ===
+
 savepack: begin: Packing steps: 102
 	savepack: step 2: Storing File: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
 	savepack: step 2: Storing File: res://icon.svg.import
@@ -169,10 +172,9 @@ savepack: begin: Packing steps: 102
 	savepack: step 93: Storing File: res://.godot/uid_cache.bin
 	savepack: step 93: Storing File: res://project.binary
 savepack: end
-cannot connect to daemon at tcp:5037: Connection refused
 total 64844
-drwxr-xr-x 2 runner runner     4096 Oct  2 16:47 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 16:47 ..
--rw-rw-rw- 1 runner runner   313280 Oct  2 16:47 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 16:47 darsi.x86_64
+drwxr-xr-x 2 runner runner     4096 Oct  2 16:51 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 16:51 ..
+-rw-rw-rw- 1 runner runner   314016 Oct  2 16:51 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 16:51 darsi.x86_64
 ```
