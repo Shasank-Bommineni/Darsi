@@ -1,6 +1,6 @@
 # Last CI run
 
-commit: 5539c71d4bd51674d595821cac9ebd8eb5d6c08b
+commit: 76c2e7ee536bf62540eb79649aef57d7b5adfd28
 parse: success  tests: failure  smoke: success  export: success
 
 ```
@@ -89,7 +89,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 556 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
+  built in 610 ms: { "street_poles": 1496, "trees": 1141, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 509, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
   PASS  plots filled along the real streets (509)
   PASS  drivable road graph built (194 segments)
@@ -109,34 +109,33 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  chassis collider exists
   PASS  both wheels exist as animated nodes
   PASS  the handlebars steer independently of the frame
-  spawn (-5.480209, 0.59, 13.783) -> settled (-5.56943, 1.107237, 13.92619), contacts front=false rear=false, up=(0.290304, -0.837132, -0.463609)
-  under the bike: /root/@Node3D@2/Ground at (-5.56943, 0, 13.92619) (normal (0, 1, 0))
-  PASS  the bike rests on its suspension (y = 1.11)
-  FAIL  the bike stays upright at rest
-  speed after 6 s of throttle: 0 km/h, travelled 0.1 m
-  FAIL  the engine actually accelerates the bike (0 km/h)
-  PASS  top speed is plausible for a 150cc commuter (0 km/h)
+  spawn (-5.480209, 0.59, 13.783) -> settled (-5.480063, 0.532213, 13.78306), contacts front=true rear=true, up=(-0.00027, 1, -0.000107)
+  under the bike: /root/@Node3D@2/Ground at (-5.480063, 0, 13.78306) (normal (0, 1, 0))
+  PASS  the bike rests on its suspension (y = 0.53)
+  PASS  the bike stays upright at rest
+  speed after 6 s of throttle: 16 km/h, travelled 13.1 m
+  FAIL  the engine actually accelerates the bike (16 km/h)
+  PASS  top speed is plausible for a 150cc commuter (16 km/h)
   FAIL  the gearbox shifted up (gear 1)
-  FAIL  the odometer recorded the ride (0.1 m)
+  FAIL  the odometer recorded the ride (13.1 m)
   FAIL  the bike moved across the world
   PASS  the bike is still upright under power
-  PASS  fuel is being consumed (9.00 l)
-  heading changed by 0.0 deg, peak lean -8.4 deg
-  FAIL  steering changes the heading (0.0 deg)
-  PASS  the bike leans into the corner (-8.4 deg)
+  PASS  fuel is being consumed (8.99 l)
+  heading changed by 13.8 deg, peak lean -23.6 deg
+  FAIL  steering changes the heading (13.8 deg)
+  PASS  the bike leans into the corner (-23.6 deg)
   PASS  the bike did not fall over while cornering
   braking: 0.0 -> 0.0 m/s
   PASS  the brakes stop the bike
   PASS  ride modes cycle
   PASS  refuelling fills the tank
 
-=== 52 checks, 6 failures ===
-  FAILED: the bike stays upright at rest
-  FAILED: the engine actually accelerates the bike (0 km/h)
+=== 52 checks, 5 failures ===
+  FAILED: the engine actually accelerates the bike (16 km/h)
   FAILED: the gearbox shifted up (gear 1)
-  FAILED: the odometer recorded the ride (0.1 m)
+  FAILED: the odometer recorded the ride (13.1 m)
   FAILED: the bike moved across the world
-  FAILED: steering changes the heading (0.0 deg)
+  FAILED: steering changes the heading (13.8 deg)
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
@@ -173,8 +172,8 @@ savepack: begin: Packing steps: 102
 	savepack: step 93: Storing File: res://project.binary
 savepack: end
 total 64844
-drwxr-xr-x 2 runner runner     4096 Oct  2 16:51 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 16:51 ..
--rw-rw-rw- 1 runner runner   314016 Oct  2 16:51 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 16:51 darsi.x86_64
+drwxr-xr-x 2 runner runner     4096 Oct  2 16:56 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 16:56 ..
+-rw-rw-rw- 1 runner runner   314208 Oct  2 16:56 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 16:56 darsi.x86_64
 ```
