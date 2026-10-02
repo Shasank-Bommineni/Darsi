@@ -1,6 +1,6 @@
 # Last CI run
 
-commit: ddba4e4ee8458812b9eb12f6fb5c013f244cc844
+commit: 3f15d886f59b38401500a9593a8340ad4c5c7f75
 parse: success  tests: success  smoke: success  export: success
 
 ```
@@ -89,9 +89,9 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 3091 ms: { "fields": 420, "street_poles": 1496, "trees": 830, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1047, "landmarks": 27, "drivable_segments": 194 }
+  built in 4493 ms: { "fields": 420, "street_poles": 1496, "trees": 905, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 248, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
-  PASS  plots filled along the real streets (1047)
+  PASS  plots filled along the real streets (248)
   PASS  drivable road graph built (194 segments)
   PASS  landmarks registered (27)
   PASS  road geometry node exists
@@ -137,7 +137,7 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-Darsi built: { "fields": 420, "street_poles": 1496, "trees": 830, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1047, "landmarks": 27, "drivable_segments": 194 }
+Darsi built: { "fields": 420, "street_poles": 1496, "trees": 905, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 248, "landmarks": 27, "drivable_segments": 194 }
 === screenshots ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
@@ -158,7 +158,7 @@ ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
 WARNING: All audio drivers failed, falling back to the dummy driver.
      at: initialize (servers/audio_server.cpp:247)
 
-stats: { "fields": 420, "street_poles": 1496, "trees": 830, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1047, "landmarks": 27, "drivable_segments": 194 }
+stats: { "fields": 420, "street_poles": 1496, "trees": 905, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 248, "landmarks": 27, "drivable_segments": 194 }
 capturing 6 shots
 saved res://docs/screenshots/01_town_from_above.png (ok)
 saved res://docs/screenshots/02_central_junction.png (ok)
@@ -166,21 +166,21 @@ saved res://docs/screenshots/03_rider_view.png (ok)
 saved res://docs/screenshots/04_motorcycle_detail.png (ok)
 saved res://docs/screenshots/05_main_road.png (ok)
 saved res://docs/screenshots/06_street_level.png (ok)
-total 1308
-drwxr-xr-x 2 runner runner   4096 Oct  2 17:26 .
-drwxr-xr-x 3 runner runner   4096 Oct  2 17:26 ..
--rw-r--r-- 1 runner runner 213315 Oct  2 17:27 01_town_from_above.png
--rw-rw-rw- 1 runner runner    804 Oct  2 17:26 01_town_from_above.png.import
--rw-r--r-- 1 runner runner 120296 Oct  2 17:27 02_central_junction.png
--rw-rw-rw- 1 runner runner    807 Oct  2 17:26 02_central_junction.png.import
--rw-r--r-- 1 runner runner 238287 Oct  2 17:27 03_rider_view.png
--rw-rw-rw- 1 runner runner    790 Oct  2 17:26 03_rider_view.png.import
--rw-r--r-- 1 runner runner 243051 Oct  2 17:27 04_motorcycle_detail.png
--rw-rw-rw- 1 runner runner    810 Oct  2 17:26 04_motorcycle_detail.png.import
--rw-r--r-- 1 runner runner 241280 Oct  2 17:27 05_main_road.png
--rw-rw-rw- 1 runner runner    787 Oct  2 17:26 05_main_road.png.import
--rw-r--r-- 1 runner runner 237201 Oct  2 17:27 06_street_level.png
--rw-rw-rw- 1 runner runner    796 Oct  2 17:26 06_street_level.png.import
+total 1284
+drwxr-xr-x 2 runner runner   4096 Oct  2 17:31 .
+drwxr-xr-x 3 runner runner   4096 Oct  2 17:31 ..
+-rw-r--r-- 1 runner runner 182838 Oct  2 17:33 01_town_from_above.png
+-rw-rw-rw- 1 runner runner    805 Oct  2 17:31 01_town_from_above.png.import
+-rw-r--r-- 1 runner runner 108246 Oct  2 17:33 02_central_junction.png
+-rw-rw-rw- 1 runner runner    808 Oct  2 17:31 02_central_junction.png.import
+-rw-r--r-- 1 runner runner 240896 Oct  2 17:33 03_rider_view.png
+-rw-rw-rw- 1 runner runner    790 Oct  2 17:31 03_rider_view.png.import
+-rw-r--r-- 1 runner runner 252401 Oct  2 17:33 04_motorcycle_detail.png
+-rw-rw-rw- 1 runner runner    811 Oct  2 17:31 04_motorcycle_detail.png.import
+-rw-r--r-- 1 runner runner 232613 Oct  2 17:33 05_main_road.png
+-rw-rw-rw- 1 runner runner    787 Oct  2 17:31 05_main_road.png.import
+-rw-r--r-- 1 runner runner 257241 Oct  2 17:33 06_street_level.png
+-rw-rw-rw- 1 runner runner    795 Oct  2 17:31 06_street_level.png.import
 === export ===
 	savepack: step 37: Storing File: res://docs/screenshots/06_street_level.png.import
 	savepack: step 42: Storing File: res://.godot/imported/darsi_map_preview.svg-46fd48b510fce2e0dd7676004c04fd7b.ctex
@@ -212,9 +212,9 @@ drwxr-xr-x 3 runner runner   4096 Oct  2 17:26 ..
 	savepack: step 97: Storing File: res://.godot/uid_cache.bin
 	savepack: step 97: Storing File: res://project.binary
 savepack: end
-total 65660
-drwxr-xr-x 2 runner runner     4096 Oct  2 17:27 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 17:27 ..
--rw-rw-rw- 1 runner runner  1148496 Oct  2 17:27 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 17:27 darsi.x86_64
+total 65704
+drwxr-xr-x 2 runner runner     4096 Oct  2 17:33 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 17:33 ..
+-rw-rw-rw- 1 runner runner  1194752 Oct  2 17:33 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 17:33 darsi.x86_64
 ```
