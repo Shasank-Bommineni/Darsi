@@ -1,6 +1,6 @@
 # Last CI run
 
-commit: 9e822466c633a3d52a86c5abe4979b9e4f76e519
+commit: b6fd26375356c7714d7f72a2d72e3b173aba2325
 parse: success  tests: failure  smoke: success  export: success
 
 ```
@@ -89,9 +89,9 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  every road vertex lies inside the imported extract (0 strays)
 
 [2] World construction
-  built in 1891 ms: { "fields": 420, "street_poles": 1496, "trees": 867, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 400, "landmarks": 27, "drivable_segments": 194 }
+  built in 3099 ms: { "fields": 420, "street_poles": 1496, "trees": 830, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1047, "landmarks": 27, "drivable_segments": 194 }
   PASS  real OSM buildings extruded (91)
-  PASS  plots filled along the real streets (400)
+  PASS  plots filled along the real streets (1047)
   PASS  drivable road graph built (194 segments)
   PASS  landmarks registered (27)
   PASS  road geometry node exists
@@ -121,12 +121,12 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  the bike moved across the world
   PASS  the bike is still upright under power
   PASS  fuel is being consumed (8.99 l)
-  entered the corner at 8.2 m/s, heading changed by 20.4 deg, peak lean -0.0 deg, exit 0.2 m/s
+  entered the corner at 8.2 m/s, heading changed by 20.4 deg, peak lean 50.6 deg, exit 0.2 m/s
   PASS  the bike reached cornering speed (8.2 m/s)
   PASS  steering changes the heading (20.4 deg)
-  FAIL  the bike leans into the corner (-0.0 deg)
+  PASS  the bike leans into the corner (50.6 deg peak)
   PASS  the bike did not fall over while cornering
-  PASS  the lean angle stays inside the tyre's edge (-0.0 deg)
+  FAIL  the lean angle stays inside the tyre's edge (50.6 deg)
   PASS  the bike is rolling before the brake test (10.8 m/s)
   braking: 10.8 -> 0.0 m/s
   PASS  the brakes stop the bike
@@ -134,11 +134,11 @@ Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
   PASS  refuelling fills the tank
 
 === 55 checks, 1 failures ===
-  FAILED: the bike leans into the corner (-0.0 deg)
+  FAILED: the lean angle stays inside the tyre's edge (50.6 deg)
 === smoke run ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 
-Darsi built: { "fields": 420, "street_poles": 1496, "trees": 867, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 400, "landmarks": 27, "drivable_segments": 194 }
+Darsi built: { "fields": 420, "street_poles": 1496, "trees": 830, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1047, "landmarks": 27, "drivable_segments": 194 }
 === screenshots ===
 Godot Engine v4.3.stable.official.77dcf97d8 - https://godotengine.org
 WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
@@ -159,7 +159,7 @@ ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
 WARNING: All audio drivers failed, falling back to the dummy driver.
      at: initialize (servers/audio_server.cpp:247)
 
-stats: { "fields": 420, "street_poles": 1496, "trees": 867, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 400, "landmarks": 27, "drivable_segments": 194 }
+stats: { "fields": 420, "street_poles": 1496, "trees": 830, "roads": 194, "road_km": 67.7601, "osm_buildings": 91, "infill_buildings": 1047, "landmarks": 27, "drivable_segments": 194 }
 capturing 6 shots
 saved res://docs/screenshots/01_town_from_above.png (ok)
 saved res://docs/screenshots/02_central_junction.png (ok)
@@ -167,21 +167,21 @@ saved res://docs/screenshots/03_rider_view.png (ok)
 saved res://docs/screenshots/04_motorcycle_detail.png (ok)
 saved res://docs/screenshots/05_main_road.png (ok)
 saved res://docs/screenshots/06_street_level.png (ok)
-total 1264
-drwxr-xr-x 2 runner runner   4096 Oct  2 17:15 .
-drwxr-xr-x 3 runner runner   4096 Oct  2 17:15 ..
--rw-r--r-- 1 runner runner 181836 Oct  2 17:16 01_town_from_above.png
--rw-rw-rw- 1 runner runner    805 Oct  2 17:15 01_town_from_above.png.import
--rw-r--r-- 1 runner runner  93654 Oct  2 17:16 02_central_junction.png
--rw-rw-rw- 1 runner runner    808 Oct  2 17:15 02_central_junction.png.import
--rw-r--r-- 1 runner runner 239923 Oct  2 17:16 03_rider_view.png
--rw-rw-rw- 1 runner runner    790 Oct  2 17:15 03_rider_view.png.import
--rw-r--r-- 1 runner runner 252338 Oct  2 17:16 04_motorcycle_detail.png
--rw-rw-rw- 1 runner runner    810 Oct  2 17:15 04_motorcycle_detail.png.import
--rw-r--r-- 1 runner runner 230747 Oct  2 17:16 05_main_road.png
--rw-rw-rw- 1 runner runner    786 Oct  2 17:15 05_main_road.png.import
--rw-r--r-- 1 runner runner 252066 Oct  2 17:16 06_street_level.png
--rw-rw-rw- 1 runner runner    795 Oct  2 17:15 06_street_level.png.import
+total 1308
+drwxr-xr-x 2 runner runner   4096 Oct  2 17:20 .
+drwxr-xr-x 3 runner runner   4096 Oct  2 17:20 ..
+-rw-r--r-- 1 runner runner 213315 Oct  2 17:21 01_town_from_above.png
+-rw-rw-rw- 1 runner runner    804 Oct  2 17:20 01_town_from_above.png.import
+-rw-r--r-- 1 runner runner 120296 Oct  2 17:21 02_central_junction.png
+-rw-rw-rw- 1 runner runner    808 Oct  2 17:20 02_central_junction.png.import
+-rw-r--r-- 1 runner runner 238287 Oct  2 17:21 03_rider_view.png
+-rw-rw-rw- 1 runner runner    790 Oct  2 17:20 03_rider_view.png.import
+-rw-r--r-- 1 runner runner 243051 Oct  2 17:21 04_motorcycle_detail.png
+-rw-rw-rw- 1 runner runner    811 Oct  2 17:20 04_motorcycle_detail.png.import
+-rw-r--r-- 1 runner runner 241280 Oct  2 17:21 05_main_road.png
+-rw-rw-rw- 1 runner runner    787 Oct  2 17:20 05_main_road.png.import
+-rw-r--r-- 1 runner runner 237201 Oct  2 17:22 06_street_level.png
+-rw-rw-rw- 1 runner runner    796 Oct  2 17:20 06_street_level.png.import
 === export ===
 	savepack: step 37: Storing File: res://docs/screenshots/06_street_level.png.import
 	savepack: step 42: Storing File: res://.godot/imported/darsi_map_preview.svg-46fd48b510fce2e0dd7676004c04fd7b.ctex
@@ -213,9 +213,9 @@ drwxr-xr-x 3 runner runner   4096 Oct  2 17:15 ..
 	savepack: step 97: Storing File: res://.godot/uid_cache.bin
 	savepack: step 97: Storing File: res://project.binary
 savepack: end
-total 65688
-drwxr-xr-x 2 runner runner     4096 Oct  2 17:16 .
-drwxr-xr-x 3 runner runner     4096 Oct  2 17:16 ..
--rw-rw-rw- 1 runner runner  1177632 Oct  2 17:16 darsi.pck
--rwxr-xr-x 1 runner runner 66074584 Oct  2 17:16 darsi.x86_64
+total 65660
+drwxr-xr-x 2 runner runner     4096 Oct  2 17:22 .
+drwxr-xr-x 3 runner runner     4096 Oct  2 17:22 ..
+-rw-rw-rw- 1 runner runner  1148432 Oct  2 17:22 darsi.pck
+-rwxr-xr-x 1 runner runner 66074584 Oct  2 17:22 darsi.x86_64
 ```
