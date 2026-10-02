@@ -25,18 +25,21 @@ func _ready() -> void:
 	sky_material.ground_bottom_color = Color(0.45, 0.39, 0.30)
 	sky.sky_material = sky_material
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 1.0
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.58, 0.60, 0.66)
+	env.ambient_light_energy = 0.32
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 0.78
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.82, 0.79, 0.70)
-	env.fog_density = 0.0012
+	env.fog_light_color = Color(0.74, 0.71, 0.63)
+	env.fog_density = 0.00035
+	env.fog_sky_affect = 0.1
 	env_node.environment = env
 	add_child(env_node)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation = Vector3(deg_to_rad(-48.0), deg_to_rad(40.0), 0.0)
-	sun.light_energy = 1.3
+	sun.light_energy = 0.95
 	sun.shadow_enabled = true
 	add_child(sun)
 

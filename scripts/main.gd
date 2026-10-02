@@ -81,20 +81,21 @@ func _setup_environment() -> void:
 	sky_material.sun_angle_max = 12.0
 	sky.sky_material = sky_material
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.9
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.05
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.58, 0.60, 0.66)
+	env.ambient_light_energy = 0.32
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 0.78
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.82, 0.79, 0.70)
-	env.fog_density = 0.0016
-	env.fog_sky_affect = 0.3
+	env.fog_light_color = Color(0.74, 0.71, 0.63)
+	env.fog_density = 0.0008
+	env.fog_sky_affect = 0.15
 	environment.environment = env
 	add_child(environment)
 
 	sun = DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.light_energy = 1.25
+	sun.light_energy = 0.95
 	sun.light_color = Color(1.0, 0.96, 0.88)
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 220.0
@@ -180,10 +181,10 @@ func _update_time(delta: float) -> void:
 	var sun_angle := (time_of_day / 24.0) * TAU - PI * 0.5
 	sun.rotation = Vector3(-sin(sun_angle) * 1.1 - 0.15, deg_to_rad(38.0), 0.0)
 	var daylight := clampf(sin((time_of_day - 6.0) / 12.0 * PI), 0.0, 1.0)
-	sun.light_energy = 0.08 + daylight * 1.35
+	sun.light_energy = 0.06 + daylight * 0.95
 	sun.light_color = Color(1.0, 0.92 - (1.0 - daylight) * 0.18, 0.80 - (1.0 - daylight) * 0.28)
 	var env := environment.environment
-	env.ambient_light_energy = 0.14 + daylight * 0.85
+	env.ambient_light_energy = 0.05 + daylight * 0.30
 	var sky_material: ProceduralSkyMaterial = env.sky.sky_material
 	sky_material.sky_top_color = Color(0.05, 0.07, 0.14).lerp(Color(0.32, 0.52, 0.78), daylight)
 	sky_material.sky_horizon_color = Color(0.17, 0.14, 0.17).lerp(Color(0.88, 0.84, 0.72), daylight)

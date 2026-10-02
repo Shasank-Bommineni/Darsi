@@ -405,7 +405,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			balance_torque += roll_inertia * (28.0 * (0.0 - current_lean) - 9.0 * roll_rate)
 		if absf(current_lean) > MAX_LEAN:
 			# Past the edge of the tyre the rider physically cannot lean further.
-			balance_torque += roll_inertia * (MAX_LEAN * signf(current_lean) - current_lean) * 60.0
+			balance_torque += roll_inertia * (MAX_LEAN * signf(current_lean) - current_lean) * 220.0
 		state.apply_torque(forward * clampf(balance_torque, -4000.0, 4000.0))
 
 		# Yaw: follow the kinematic steering rate, and damp anything else (no tank-slappers).

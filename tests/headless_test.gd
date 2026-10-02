@@ -185,9 +185,14 @@ func _test_motorcycle(builder: DarsiWorldBuilder) -> void:
 	_check(absf(leaned) > 2.0, "the bike leans into the corner (%.1f deg)" % leaned)
 	_check(bike.global_transform.basis.y.dot(Vector3.UP) > 0.6, "the bike did not fall over while cornering")
 
-	_check(absf(leaned) < 50.0, "the lean angle stays inside the tyre's edge (%.1f deg)" % leaned)
+	_check(absf(leaned) < 48.0, "the lean angle stays inside the tyre's edge (%.1f deg)" % leaned)
 
-	# Brakes: get back up to speed first, then grab both.
+	# Brakes: put the bike back on a clean stretch of road, get up to speed, then grab both.
+	var brake_start := builder.nearest_road_point(bike.global_position)
+	bike.respawn_at(brake_start.position + Vector3(0, 0.2, 0), brake_start.direction)
+	for i in range(30):
+		bike.set_controls(0.0, 0.0, 0.0, 0.0)
+		await physics_frame
 	for i in range(180):
 		bike.set_controls(1.0, 0.0, 0.0, 0.0)
 		await physics_frame
