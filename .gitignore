@@ -1,0 +1,10 @@
+.godot/
+.godot/**
+android/build/
+android/.gradle/
+*.keystore
+*.jks
+user://
+*.import
+__pycache__/
+.pytest_cache/

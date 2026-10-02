@@ -1,0 +1,53 @@
+; Darsi - cozy motorcycle life prototype
+; Godot 4.x project. The first milestone is intentionally procedural and asset-free
+; so it can be regenerated from the geographic manifest without shipping scraped imagery.
+config_version=5
+
+[application]
+config/name="Darsi — Small Town Ride"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+window/size/resizable=true
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+objects/default_light_distance=500.0
+
+[environment]
+defaults/default_clear_color=Color(0.09, 0.12, 0.14, 1)
+
+[input]
+accelerate={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":87),Object(InputEventKey,"physical_keycode":4194320)]}
+brake={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":83),Object(InputEventKey,"physical_keycode":4194322)]}
+steer_left={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":65),Object(InputEventKey,"physical_keycode":4194319)]}
+steer_right={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":68),Object(InputEventKey,"physical_keycode":4194321)]}
+handbrake={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":32)]}
+toggle_camera={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":67)]}
+photo_mode={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":80)]}
+toggle_map={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":77)]}
+interact={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":69)]}
+
+[gui]
+theme/default_font_multichannel_signed_distance_field=true
+
+[android]
+
+[physics]
+3d/default_gravity=9.8
+common/enable_pause_aware_picking=true
+
+[layer_names]
+3d_physics/layer_1="World"
+3d_physics/layer_2="Player"
+3d_physics/layer_3="Traffic"
