@@ -30,7 +30,7 @@ var _materials: Dictionary = {}
 ## Coarse occupancy grid (CELL metre cells) so plot placement is O(1) per candidate
 ## instead of testing thousands of rectangles. Two layers: hard blockers (buildings,
 ## water) and road corridors.
-const CELL := 4.0
+const CELL := 2.0
 var _blocked: Dictionary = {}               # cell key -> true, buildings/water/plots
 var _road_cells: Dictionary = {}            # cell key -> true, carriageway + 1 m
 var _stats: Dictionary = {}
@@ -81,6 +81,7 @@ func build(data: Dictionary) -> Dictionary:
 	var osm_buildings := _build_osm_buildings()
 	var infill := _build_infill_buildings()
 	_build_pois()
+	_build_farm_fields()
 	_build_street_furniture()
 	_build_vegetation()
 	_build_boundary()
@@ -141,7 +142,7 @@ func _build_ground() -> void:
 	plane.mesh = mesh
 	ground.add_child(plane)
 
-	var patch_colours := [Color("#8d7d5c"), Color("#a38a63"), Color("#94845f"), Color("#ab9570")]
+	var patch_colours := [Color("#8d7d5c"), Color("#9c8a62"), Color("#8a7c58"), Color("#a08d64"), Color("#7d8a5a")]
 	for i in range(70):
 		var size := rng.randf_range(90.0, 320.0)
 		var px := rng.randf_range(-half_x, half_x)
@@ -154,6 +155,77 @@ func _build_ground() -> void:
 		patch.position = plane_to_world(px, py) + Vector3(0, 0.005 + float(i) * 0.0002, 0)
 		patch.rotation.y = rng.randf_range(0.0, PI)
 		ground.add_child(patch)
+
+
+## Prakasam district outside the built-up area is a patchwork of irrigated fields.
+## OSM has no landuse polygons mapped for Darsi, so the fields are laid out procedurally
+## on the land the real road network leaves empty, with earth bunds between them.
+func _build_farm_fields() -> void:
+	var parent := Node3D.new()
+	parent.name = "Fields"
+	add_child(parent)
+
+	var crops := [
+		Color("#7f9150"), Color("#8ea35a"), Color("#6f8545"), Color("#9aa864"),
+		Color("#b7a86a"), Color("#a3924f"), Color("#5f7a3c"), Color("#c0b074"),
+	]
+	var bund_colour := Color("#8a7450")
+	var placed := 0
+	var attempts := 0
+	while placed < 420 and attempts < 6000:
+		attempts += 1
+		var centre := Vector2(rng.randf_range(-half_x + 60.0, half_x - 60.0), rng.randf_range(-half_y + 60.0, half_y - 60.0))
+		# Fields are rare in the middle of town and common on the outskirts.
+		if centre.length() < 450.0 and rng.randf() < 0.85:
+			continue
+		var field_size := Vector2(rng.randf_range(45.0, 130.0), rng.randf_range(40.0, 110.0))
+		var rect := Rect2(centre - field_size * 0.5, field_size)
+		if _is_occupied(rect):
+			continue
+		var angle := rng.randf_range(0.0, PI)
+		var crop: Color = crops[rng.randi() % crops.size()]
+		var field := Node3D.new()
+		field.position = plane_to_world(centre.x, centre.y)
+		field.rotation.y = angle
+		parent.add_child(field)
+
+		var plot := MeshInstance3D.new()
+		var plot_mesh := PlaneMesh.new()
+		plot_mesh.size = field_size
+		plot_mesh.material = _material(crop, 0.98)
+		plot.mesh = plot_mesh
+		plot.position = Vector3(0, 0.04, 0)
+		field.add_child(plot)
+
+		# Earth bunds on all four sides hold the irrigation water in.
+		for axis in [0, 1]:
+			for side in [-1.0, 1.0]:
+				var bund := MeshInstance3D.new()
+				var bund_mesh := BoxMesh.new()
+				if axis == 0:
+					bund_mesh.size = Vector3(field_size.x, 0.45, 0.8)
+					bund.position = Vector3(0.0, 0.2, side * field_size.y * 0.5)
+				else:
+					bund_mesh.size = Vector3(0.8, 0.45, field_size.y)
+					bund.position = Vector3(side * field_size.x * 0.5, 0.2, 0.0)
+				bund_mesh.material = _material(bund_colour, 1.0)
+				bund.mesh = bund_mesh
+				field.add_child(bund)
+
+		# Crop rows give the fields some texture from the saddle.
+		var rows := int(field_size.y / 6.0)
+		for i in range(rows):
+			var row := MeshInstance3D.new()
+			var row_mesh := BoxMesh.new()
+			row_mesh.size = Vector3(field_size.x * 0.94, 0.35, 0.7)
+			row_mesh.material = _material(crop.darkened(0.18), 0.98)
+			row.mesh = row_mesh
+			row.position = Vector3(0.0, 0.18, -field_size.y * 0.5 + 3.0 + float(i) * 6.0)
+			field.add_child(row)
+
+		_mark_rect(_blocked, rect.grow(3.0))
+		placed += 1
+	_stats["fields"] = placed
 
 
 func _build_green_areas() -> void:
@@ -349,7 +421,7 @@ func _build_infill_buildings() -> int:
 	add_child(parent)
 
 	var built := 0
-	var budget := 900
+	var budget := 1800
 	var streets: Array = []
 	for road in world.roads:
 		if String(road["class"]) in ["neighbourhood", "lane", "collector", "arterial"]:
@@ -367,7 +439,7 @@ func _build_infill_buildings() -> int:
 		var half_width := float(road.width) * 0.5
 		var centre_distance := _distance_to_centre(road)
 		# Density falls off away from the town centre, like the real settlement pattern.
-		var density := clampf(1.25 - centre_distance / 1500.0, 0.08, 1.0)
+		var density := clampf(1.35 - centre_distance / 2200.0, 0.18, 1.0)
 		var is_main := road_class in ["arterial", "collector"]
 
 		for side in [-1.0, 1.0]:
@@ -382,7 +454,7 @@ func _build_infill_buildings() -> int:
 				var position: Vector2 = sample.position
 				var tangent: Vector2 = sample.tangent
 				var normal: Vector2 = Vector2(-tangent.y, tangent.x) * side
-				var setback := rng.randf_range(5.0, 8.0)
+				var setback := rng.randf_range(2.8, 5.5)
 				var depth := rng.randf_range(7.0, 13.0)
 				var centre: Vector2 = position + normal * (half_width + setback + depth * 0.5)
 				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
