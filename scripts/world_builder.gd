@@ -27,7 +27,12 @@ var rng := RandomNumberGenerator.new()
 var landmarks: Array[Dictionary] = []
 var road_graph: Array[Dictionary] = []      # drivable polylines in world space, for traffic + spawn
 var _materials: Dictionary = {}
-var _occupied: Array[Rect2] = []            # 2D footprints already used (buildings, water, roads)
+## Coarse occupancy grid (CELL metre cells) so plot placement is O(1) per candidate
+## instead of testing thousands of rectangles. Two layers: hard blockers (buildings,
+## water) and road corridors.
+const CELL := 4.0
+var _blocked: Dictionary = {}               # cell key -> true, buildings/water/plots
+var _road_cells: Dictionary = {}            # cell key -> true, carriageway + 1 m
 var _stats: Dictionary = {}
 
 # ------------------------------------------------------------------ palettes
@@ -254,7 +259,7 @@ func _build_roads() -> void:
 			surface.set_meta("osm_id", road.osm_id)
 			surface.set_meta("name", road.name)
 			parent.add_child(surface)
-		_occupy_polyline(points, width * 0.5 + 1.0)
+		_occupy_polyline(points, width * 0.5 + 1.2)
 
 		# Lane markings on the classified network only, exactly like the real roads here.
 		if road_class in ["highway", "arterial"]:
@@ -377,13 +382,13 @@ func _build_infill_buildings() -> int:
 				var position: Vector2 = sample.position
 				var tangent: Vector2 = sample.tangent
 				var normal: Vector2 = Vector2(-tangent.y, tangent.x) * side
-				var setback := rng.randf_range(2.5, 5.5)
+				var setback := rng.randf_range(5.0, 8.0)
 				var depth := rng.randf_range(7.0, 13.0)
 				var centre: Vector2 = position + normal * (half_width + setback + depth * 0.5)
 				if abs(centre.x) > half_x - 20.0 or abs(centre.y) > half_y - 20.0:
 					travelled += frontage
 					continue
-				var footprint := Rect2(centre - Vector2(frontage, depth) * 0.5, Vector2(frontage, depth)).grow(1.5)
+				var footprint := Rect2(centre - Vector2(frontage, depth) * 0.5, Vector2(frontage, depth)).grow(0.8)
 				if _is_occupied(footprint):
 					travelled += frontage + 1.0
 					continue
@@ -400,7 +405,7 @@ func _build_infill_buildings() -> int:
 				node.name = "Infill_%d" % built
 				node.set_meta("procedural_infill", true)
 				parent.add_child(node)
-				_occupied.append(footprint)
+				_mark_rect(_blocked, footprint)
 				built += 1
 				travelled += frontage + rng.randf_range(0.6, 4.0)
 	return built
@@ -1018,26 +1023,60 @@ static func _sample_polyline(points: PackedVector2Array, distance: float) -> Dic
 	return {"position": points[last], "tangent": tangent.normalized()}
 
 
+static func _cell_key(x: float, y: float) -> int:
+	# Pack a 4 m cell into a single int so the Dictionary lookup stays cheap.
+	return int(floor(x / CELL)) * 100000 + int(floor(y / CELL))
+
+
+func _mark_rect(target: Dictionary, rect: Rect2) -> void:
+	var x := rect.position.x
+	while x <= rect.end.x + CELL:
+		var y := rect.position.y
+		while y <= rect.end.y + CELL:
+			target[_cell_key(x, y)] = true
+			y += CELL
+		x += CELL
+
+
+func _rect_hits(target: Dictionary, rect: Rect2) -> bool:
+	var x := rect.position.x
+	while x <= rect.end.x + CELL:
+		var y := rect.position.y
+		while y <= rect.end.y + CELL:
+			if target.has(_cell_key(x, y)):
+				return true
+			y += CELL
+		x += CELL
+	return false
+
+
 func _occupy(points: PackedVector2Array, margin: float) -> void:
 	if points.is_empty():
 		return
 	var rect := Rect2(points[0], Vector2.ZERO)
 	for p in points:
 		rect = rect.expand(p)
-	_occupied.append(rect.grow(margin))
+	_mark_rect(_blocked, rect.grow(margin))
 
 
+## Stamps the carriageway itself (not its bounding box) into the road layer.
 func _occupy_polyline(points: PackedVector2Array, margin: float) -> void:
 	for i in range(1, points.size()):
-		var rect := Rect2(points[i - 1], Vector2.ZERO).expand(points[i])
-		_occupied.append(rect.grow(margin))
+		var a := points[i - 1]
+		var b := points[i]
+		var length := a.distance_to(b)
+		var steps := int(ceil(length / (CELL * 0.5))) + 1
+		for step in range(steps + 1):
+			var p := a.lerp(b, float(step) / float(steps))
+			_mark_rect(_road_cells, Rect2(p - Vector2(margin, margin), Vector2(margin, margin) * 2.0))
 
 
 func _is_occupied(rect: Rect2) -> bool:
-	for other in _occupied:
-		if other.intersects(rect):
-			return true
-	return false
+	return _rect_hits(_blocked, rect) or _rect_hits(_road_cells, rect)
+
+
+func _is_blocked(rect: Rect2) -> bool:
+	return _rect_hits(_blocked, rect)
 
 
 ## Nearest point on the drivable network - used to place the player and traffic on tarmac.

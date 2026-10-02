@@ -72,7 +72,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "=== smoke run ===" >> ci.log
-          timeout 180 godot --headless --quit-after 600 scenes/main.tscn 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' | tail -60 | tee -a ci.log || true
+          timeout 180 godot --headless --quit-after 600 scenes/main.tscn 2>&1 | grep -v 'Parameter "m" is null' | grep -v 'mesh_storage.h' | tee -a ci.log | tail -40 || true
           grep -q "Darsi built:" ci.log
 
       - name: Export the Linux build

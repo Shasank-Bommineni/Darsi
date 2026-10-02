@@ -111,8 +111,14 @@ func _draw() -> void:
 			while i + 1 < flat.size():
 				ring.append(to_screen.call(Vector2(float(flat[i]), float(flat[i + 1]))))
 				i += 2
+			# Degenerate rings (fully off-screen, or collapsed by the scale) make the
+			# canvas triangulator fail, so only draw rings that still have real area.
 			if ring.size() >= 3:
-				draw_colored_polygon(ring, Color(0.25, 0.49, 0.62, 0.85))
+				var bounds := Rect2(ring[0], Vector2.ZERO)
+				for q in ring:
+					bounds = bounds.expand(q)
+				if bounds.size.x > 3.0 and bounds.size.y > 3.0 and (bounds.position - centre).length() < radius * 3.0:
+					draw_colored_polygon(ring, Color(0.25, 0.49, 0.62, 0.85))
 
 	for landmark in landmarks:
 		var p: Vector2 = to_screen.call(Vector2(landmark.position.x, -landmark.position.z))

@@ -45,6 +45,10 @@ const DRAG_COEFFICIENT := 0.68          # Cd*A for an upright rider, m^2
 const AIR_DENSITY := 1.18
 const ROLLING_RESISTANCE := 0.018
 
+const MAX_SUSPENSION_FORCE := 9000.0     # N per wheel, ~4x static load
+const MAX_TYRE_FORCE := 4500.0           # N, the contact patch cannot do more than this
+const MAX_SPEED := 60.0                  # m/s hard ceiling (216 km/h), a safety net
+const MAX_SPIN := 9.0                    # rad/s hard ceiling on body rotation
 const MAX_STEER_ANGLE := deg_to_rad(32.0)
 const MAX_LEAN := deg_to_rad(42.0)
 
@@ -276,9 +280,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var distance: float = origin.distance_to(hit.position)
 		var compression: float = clampf((SUSPENSION_REST + WHEEL_RADIUS) - distance, -SUSPENSION_TRAVEL, SUSPENSION_TRAVEL)
 		var point_velocity: Vector3 = state.get_velocity_at_local_position(origin - state.transform.origin)
-		var vertical_velocity: float = point_velocity.dot(up)
+		# The damper term has to be clamped: an unbounded damper fed by the contact-point
+		# velocity of a spinning body is a positive feedback loop that explodes the solver.
+		var vertical_velocity: float = clampf(point_velocity.dot(up), -6.0, 6.0)
 		var spring_force: float = float(axle.spring) * compression - float(axle.damp) * vertical_velocity
-		spring_force = maxf(0.0, spring_force)
+		spring_force = clampf(spring_force, 0.0, MAX_SUSPENSION_FORCE)
 		var load := spring_force
 
 		var contact_point: Vector3 = hit.position
@@ -298,14 +304,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		})
 
 	# ----- engine, gearbox, drive force
-	var wheel_rpm := abs_speed / (TAU * WHEEL_RADIUS) * 60.0
-	var ratio: float = GEAR_RATIOS[gear] * PRIMARY_RATIO * FINAL_DRIVE / 3.35
-	engine_rpm = clampf(maxf(wheel_rpm * ratio * 1.9, IDLE_RPM), IDLE_RPM, REDLINE_RPM)
+	var wheel_rev_per_s := abs_speed / (TAU * WHEEL_RADIUS)
+	var ratio: float = GEAR_RATIOS[gear] * FINAL_DRIVE
+	engine_rpm = clampf(maxf(wheel_rev_per_s * 60.0 * ratio, IDLE_RPM), IDLE_RPM, REDLINE_RPM)
 
 	var drive_force := 0.0
 	if engine_running and fuel > 0.0 and throttle > 0.01 and gear > 0:
 		var torque := _engine_torque(engine_rpm) * float(settings.power)
-		var wheel_torque: float = torque * GEAR_RATIOS[gear] * PRIMARY_RATIO * FINAL_DRIVE / 3.35 * 0.92
+		var wheel_torque: float = torque * GEAR_RATIOS[gear] * FINAL_DRIVE * 0.92
 		drive_force = wheel_torque / WHEEL_RADIUS * throttle
 		# Clutch slip off the line so first gear does not launch the bike like a rocket.
 		if abs_speed < 2.0:
@@ -346,7 +352,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 		var lateral_velocity := patch_velocity.dot(wheel_right)
 		var mu: float = 1.05 * grip_scale
-		var max_friction: float = mu * load
+		var max_friction: float = minf(mu * load, MAX_TYRE_FORCE)
 
 		# Lateral force: linear in slip, saturating at the friction limit.
 		var lateral_force := clampf(-lateral_velocity * 420.0, -max_friction, max_friction)
@@ -376,7 +382,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var current_lean := asin(clampf(up.dot(forward.cross(Vector3.UP).normalized()), -1.0, 1.0))
 		var roll_rate := state.angular_velocity.dot(forward)
 		var assist: float = float(settings.assist)
-		var balance_torque := (_lean_target - current_lean) * 5200.0 * assist - roll_rate * 1500.0 * assist
+		var balance_torque := clampf((_lean_target - current_lean) * 5200.0 * assist - roll_rate * 1500.0 * assist, -9000.0, 9000.0)
 		# A stopped bike is held up by the rider's feet.
 		if abs_speed < 1.5:
 			balance_torque += -current_lean * 4200.0 - roll_rate * 1800.0
@@ -385,12 +391,18 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# Damp any yaw that is not matched by the steering input - stops tank-slappers.
 		var yaw_rate := state.angular_velocity.dot(up)
 		var desired_yaw := speed * tan(_steer_angle) / WHEELBASE
-		state.apply_torque(up * ((desired_yaw - yaw_rate) * 900.0 * assist))
+		state.apply_torque(up * clampf((desired_yaw - yaw_rate) * 900.0 * assist, -4000.0, 4000.0))
 
 		# Keep the pitch sensible (no endless wheelies/stoppies).
 		var pitch_rate := state.angular_velocity.dot(right)
 		var pitch := asin(clampf(forward.dot(Vector3.UP), -1.0, 1.0))
-		state.apply_torque(right * (-pitch * 3000.0 - pitch_rate * 1200.0))
+		state.apply_torque(right * clampf(-pitch * 3000.0 - pitch_rate * 1200.0, -6000.0, 6000.0))
+
+	# Safety net: keep the solver inside sane bounds no matter what the player hits.
+	if state.linear_velocity.length() > MAX_SPEED:
+		state.linear_velocity = state.linear_velocity.normalized() * MAX_SPEED
+	if state.angular_velocity.length() > MAX_SPIN:
+		state.angular_velocity = state.angular_velocity.normalized() * MAX_SPIN
 
 	odometer_m += absf(speed) * delta
 
